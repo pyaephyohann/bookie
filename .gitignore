@@ -30,8 +30,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — real credentials must not be committed (.env.example is the committed template)
+.env
+.env.*
+!.env.example
+
+# prisma generated client (created by `prisma generate`)
+/generated/prisma
 
 # vercel
 .vercel

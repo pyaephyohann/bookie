@@ -1,26 +1,309 @@
 @import "tailwindcss";
+@import "@fontsource-variable/scoutie-sans";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   BOOKIE DESIGN TOKENS
+   Single source of truth for colors, typography, borders,
+   radius, shadows and status semantics.
+   Change values here — never scatter raw hex values in JSX.
+   ============================================================ */
+
+@theme {
+  /* ---------- Typography ---------- */
+  /* Primary font: Scoutie Sans (self-hosted variable font, weights 200–800). */
+  --font-sans: "Scoutie Sans Variable", "Scoutie Sans", ui-sans-serif, system-ui,
+    sans-serif;
+  /* Decorative font: Caveat, loaded via next/font/google in app/layout.tsx. */
+  --font-fun: var(--font-caveat), "Caveat", "Comic Sans MS", cursive;
+
+  /* Display sizes are fluid-friendly: stepped down on small screens below. */
+  --text-display: 3rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 800;
+
+  --text-display-sm: 2.25rem;
+  --text-display-sm--line-height: 1.1;
+  --text-display-sm--letter-spacing: -0.02em;
+  --text-display-sm--font-weight: 800;
+
+  /* ---------- Brand colors ---------- */
+  --color-brand: #fff449; /* Bookie yellow — primary CTAs, highlights */
+  --color-brand-hover: #f5ea00;
+  --color-brand-active: #ebdf00;
+  --color-brand-muted: #fffbcc; /* subtle yellow tint for backgrounds */
+
+  /* ---------- Ink (black scale) ---------- */
+  --color-ink: #000000; /* Bookie black */
+  --color-ink-soft: #404040;
+  --color-ink-muted: #737373;
+  --color-ink-disabled: #a3a3a3;
+
+  /* ---------- Surfaces ---------- */
+  --color-background: #fafafa; /* Bookie white — app background */
+  --color-surface: #ffffff; /* cards, inputs, modals */
+  --color-surface-muted: #f4f4f5; /* hover fills, subtle wells */
+  --color-surface-elevated: #ffffff; /* dropdowns, popovers (pair with shadow) */
+
+  /* ---------- Text ---------- */
+  --color-text: #000000;
+  --color-text-secondary: #404040;
+  --color-text-muted: #737373;
+  --color-text-disabled: #a3a3a3;
+  --color-text-inverse: #fafafa; /* text on ink/black surfaces */
+
+  /* ---------- Status (semantic) ----------
+     Text-on-muted pairs are AA-checked against their muted backgrounds.
+     Components must consume these tokens, not raw colors. */
+  --color-success: #15803d;
+  --color-success-muted: #dcfce7;
+  --color-success-soft: #f0fdf4;
+  --color-success-strong: #166534;
+
+  --color-pending: #b45309;
+  --color-pending-muted: #fef3c7;
+  --color-pending-soft: #fffbeb;
+  --color-pending-strong: #92400e;
+
+  --color-warning: #a16207;
+  --color-warning-muted: #fef9c3;
+  --color-warning-soft: #fefce8;
+  --color-warning-strong: #854d0e;
+
+  --color-error: #dc2626;
+  --color-error-muted: #fee2e2;
+  --color-error-soft: #fef2f2;
+  --color-error-strong: #b91c1c;
+
+  --color-info: #1d4ed8;
+  --color-info-muted: #dbeafe;
+  --color-info-soft: #eff6ff;
+  --color-info-strong: #1e40af;
+
+  --color-neutral: #52525b;
+  --color-neutral-muted: #f4f4f5;
+  --color-neutral-soft: #fafafa;
+  --color-neutral-strong: #3f3f46;
+
+  /* ---------- Borders ---------- */
+  --color-border-subtle: #ebebeb;
+  --color-border: #e4e4e7;
+  --color-border-strong: #d4d4d8;
+  --color-border-focus: #000000;
+  --color-border-error: #dc2626;
+  --color-border-success: #15803d;
+
+  /* ---------- Radius ---------- */
+  /* Default Tailwind scale (rounded-sm/md/lg/xl/…) is kept.
+     These aliases pin shared component shapes. */
+  --radius-control: 0.5rem; /* buttons, inputs, selects */
+  --radius-card: 1rem; /* cards, modals, panels */
+
+  /* ---------- Shadows (subtle, editorial) ---------- */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08),
+    0 4px 6px -4px rgb(0 0 0 / 0.08);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+/* Fluid step-down for display sizes on small screens. */
+@media (max-width: 40rem) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --text-display: 2.25rem;
+    --text-display-sm: 1.875rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---------- Semantic text styles ---------- */
+/* Usage: text-h1, text-body, text-caption, text-fun … */
+
+@utility text-display {
+  font-size: var(--text-display);
+  line-height: var(--text-display--line-height);
+  letter-spacing: var(--text-display--letter-spacing);
+  font-weight: 800;
+}
+
+@utility text-display-sm {
+  font-size: var(--text-display-sm);
+  line-height: var(--text-display-sm--line-height);
+  letter-spacing: var(--text-display-sm--letter-spacing);
+  font-weight: 800;
+}
+
+@utility text-h1 {
+  font-size: var(--text-3xl);
+  line-height: var(--text-3xl--line-height);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+@utility text-h2 {
+  font-size: var(--text-2xl);
+  line-height: var(--text-2xl--line-height);
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+@utility text-h3 {
+  font-size: var(--text-xl);
+  line-height: var(--text-xl--line-height);
+  font-weight: 600;
+}
+
+@utility text-h4 {
+  font-size: var(--text-lg);
+  line-height: var(--text-lg--line-height);
+  font-weight: 600;
+}
+
+@utility text-body-lg {
+  font-size: var(--text-lg);
+  line-height: 1.6;
+}
+
+@utility text-body {
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+@utility text-body-sm {
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+@utility text-caption {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+@utility text-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+@utility text-button {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Decorative handwritten text — use sparingly (promos, callouts, empty states). */
+@utility text-fun {
+  font-family: var(--font-fun);
+  font-weight: 600;
+}
+
+/* Accessible focus indicator for interactive elements. */
+@utility focus-ring {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+@layer base {
+  html {
+    color-scheme: light; /* Bookie ships light-only for now */
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background-color: var(--color-brand);
+    color: var(--color-ink);
+  }
+
+  /* Keyboard focus is always visible and never color-only. */
+  :focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-ink);
+  }
+
+  input[type="file"]::file-selector-button {
+    margin-right: 0.75rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    background-color: var(--color-surface);
+    padding: 0.375rem 0.75rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+
+  input[type="file"]::file-selector-button:hover {
+    background-color: var(--color-surface-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ---------- Status tokens ----------
+   Reusable semantic badge classes. Future components (order timeline,
+   payment slips, stock indicators) consume these instead of hard-coded colors. */
+
+@layer components {
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .status-success {
+    background-color: var(--color-success-muted);
+    color: var(--color-success);
+  }
+
+  .status-pending {
+    background-color: var(--color-pending-muted);
+    color: var(--color-pending);
+  }
+
+  .status-warning {
+    background-color: var(--color-warning-muted);
+    color: var(--color-warning);
+  }
+
+  .status-error {
+    background-color: var(--color-error-muted);
+    color: var(--color-error);
+  }
+
+  .status-info {
+    background-color: var(--color-info-muted);
+    color: var(--color-info);
+  }
+
+  .status-neutral {
+    background-color: var(--color-neutral-muted);
+    color: var(--color-neutral);
+  }
 }

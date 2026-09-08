@@ -1,0 +1,492 @@
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum BookStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  REJECTED
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  KPAY
+  AYAPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum BannerStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PromotionType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum InventoryTransactionType {
+  RESTOCK
+  SALE
+  ADJUSTMENT
+  RETURN
+  DAMAGE
+}
+
+enum ContentType {
+  PDF
+  EPUB
+  OTHER
+}
+
+enum FeaturedSection {
+  TRENDING
+  BEST_SELLER
+  NEW_RELEASE
+  PROMOTION
+  STAFF_PICK
+  RECOMMENDED
+}
+
+// ============================================================
+// ADMIN / STAFF
+// ============================================================
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(STAFF)
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  verifiedPayments Payment[]            @relation("PaymentVerifiedBy")
+  orderStatusLogs  OrderStatusHistory[] @relation("OrderStatusChangedBy")
+}
+
+// ============================================================
+// BOOK CATALOG
+// ============================================================
+
+model Book {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  description String?   @db.Text
+  isbn        String?   @unique
+  publisher   String?
+  publishedAt DateTime?
+
+  price          Decimal  @db.Decimal(12, 2)
+  compareAtPrice Decimal? @db.Decimal(12, 2)
+
+  stockQuantity Int @default(0)
+
+  status BookStatus @default(DRAFT)
+
+  coverImage String?
+
+  // Online reading
+  isReadableOnline Boolean      @default(false)
+  readingContent   BookContent?
+
+  // SEO
+  metaTitle       String?
+  metaDescription String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories CategoryBook[]
+  authors    BookAuthor[]
+
+  orderItems OrderItem[]
+
+  promotions BookPromotion[]
+
+  inventoryTransactions InventoryTransaction[]
+
+  // Homepage / merchandising
+  featuredItems FeaturedBook[]
+
+  @@index([status])
+  @@index([title])
+  @@index([createdAt])
+  @@index([publishedAt])
+}
+
+model Author {
+  id        String  @id @default(cuid())
+  name      String
+  slug      String  @unique
+  biography String? @db.Text
+  photoUrl  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  books BookAuthor[]
+
+  @@index([name])
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String? @db.Text
+  imageUrl    String?
+
+  // Optional nested categories
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
+  books CategoryBook[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+}
+
+model CategoryBook {
+  categoryId String
+  bookId     String
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  book     Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([categoryId, bookId])
+  @@index([bookId])
+}
+
+// ============================================================
+// BOOK AUTHORS
+// ============================================================
+
+model BookAuthor {
+  bookId   String
+  authorId String
+
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Allows ordering multiple authors
+  sortOrder Int @default(0)
+
+  @@id([bookId, authorId])
+  @@index([authorId])
+}
+
+// ============================================================
+// ONLINE READING
+// ============================================================
+
+model BookContent {
+  id String @id @default(cuid())
+
+  bookId String @unique
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  contentType ContentType
+
+  // File-based content
+  fileUrl String?
+
+  // Useful if the book is stored as HTML/content
+  content String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+
+model Order {
+  id String @id @default(cuid())
+
+  // Public order identifier
+  // Example: ORD-2026-001928
+  bookPass String @unique
+
+  customerName    String
+  phone           String
+  alternatePhone  String?
+  email           String
+  shippingAddress String  @db.Text
+  note            String? @db.Text
+
+  status OrderStatus @default(PLACED)
+
+  subtotal    Decimal @db.Decimal(12, 2)
+  discount    Decimal @default(0) @db.Decimal(12, 2)
+  shippingFee Decimal @default(0) @db.Decimal(12, 2)
+  total       Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items OrderItem[]
+
+  payments Payment[]
+
+  statusHistory OrderStatusHistory[]
+
+  trackingTokens OrderTrackingToken[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId String
+  bookId  String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Do NOT cascade-delete the book relation.
+  // Historical orders should continue referencing the book.
+  book Book @relation(fields: [bookId], references: [id])
+
+  // Snapshot values
+  // Important: book price/title can change later,
+  // but historical orders must remain unchanged.
+  bookTitle String
+
+  unitPrice Decimal @db.Decimal(12, 2)
+  quantity  Int
+  subtotal  Decimal @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([bookId])
+}
+
+// ============================================================
+// ORDER STATUS HISTORY
+// ============================================================
+
+model OrderStatusHistory {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  status OrderStatus
+
+  note String? @db.Text
+
+  changedById String?
+  changedBy   User?   @relation("OrderStatusChangedBy", fields: [changedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// PAYMENTS
+// ============================================================
+
+model Payment {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  method PaymentMethod
+
+  amount Decimal @db.Decimal(12, 2)
+
+  status PaymentStatus @default(PENDING)
+
+  // Uploaded payment slip
+  slipUrl String?
+
+  // Optional reference / transaction number
+  transactionReference String?
+
+  verifiedById String?
+  verifiedBy   User?   @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+
+  verifiedAt DateTime?
+
+  rejectionReason String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+// ============================================================
+// INVENTORY
+// ============================================================
+
+model InventoryTransaction {
+  id String @id @default(cuid())
+
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id])
+
+  type InventoryTransactionType
+
+  quantity Int
+
+  // Stock before / after transaction
+  stockBefore Int
+  stockAfter  Int
+
+  note String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([bookId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// PROMOTIONS
+// ============================================================
+
+model Promotion {
+  id          String  @id @default(cuid())
+  name        String
+  description String? @db.Text
+
+  type  PromotionType
+  value Decimal       @db.Decimal(12, 2)
+
+  startAt DateTime
+  endAt   DateTime
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  books BookPromotion[]
+
+  @@index([startAt, endAt])
+  @@index([isActive])
+}
+
+model BookPromotion {
+  bookId      String
+  promotionId String
+
+  book      Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@id([bookId, promotionId])
+  @@index([promotionId])
+}
+
+// ============================================================
+// HOMEPAGE / MERCHANDISING
+// ============================================================
+
+model Banner {
+  id String @id @default(cuid())
+
+  title       String?
+  description String? @db.Text
+
+  imageUrl String
+
+  linkUrl String?
+
+  status BannerStatus @default(DRAFT)
+
+  sortOrder Int @default(0)
+
+  startAt DateTime?
+  endAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, sortOrder])
+  @@index([startAt, endAt])
+}
+
+model FeaturedBook {
+  id String @id @default(cuid())
+
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  // Homepage sections
+  section FeaturedSection
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bookId, section])
+  @@index([section, sortOrder])
+}
+
+// ============================================================
+// ORDER TRACKING TOKENS / LINKS
+// ============================================================
+
+model OrderTrackingToken {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  token     String    @unique
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}

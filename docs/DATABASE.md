@@ -74,3 +74,15 @@ B2 added the first application queries, all **read-only** and server-side (`lib/
 - `New Releases` ordered by `publishedAt` (nulls last).
 
 No writes, no new tables, no schema changes. `FeaturedBook` is the intended merchandising mechanism; shelves fall back to deterministic catalogue picks when nothing is merchandised. The database is currently empty in development, so the Home page uses the documented mock fallback until real data is seeded.
+
+## B5 usage (CURRENT — writes, no schema change)
+
+B5 introduced the first write operations, all via a single Prisma `$transaction` in `app/checkout/actions.ts`:
+
+- **Order creation:** new `Order` record with customer info (name, phone, email, shipping address), status `PLACED`, server-calculated totals (`subtotal`, `discount=0`, `shippingFee=0`, `total`), and unique `bookPass`.
+- **Order items:** `OrderItem` records with snapshot `bookTitle` + `unitPrice` (fetched from database, not trusted from client).
+- **Status history:** initial `OrderStatusHistory` entry (`PLACED`).
+- **Inventory:** `Book.stockQuantity` decremented per item; `InventoryTransaction` ledger entry created for each line.
+- **Book lookup:** books fetched by ID + `status = PUBLISHED` to validate orderability and obtain authoritative prices.
+
+No schema changes were required — the existing models fully support guest checkout, order snapshots, and inventory tracking.

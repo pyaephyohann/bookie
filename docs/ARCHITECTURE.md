@@ -14,7 +14,7 @@ This document describes the architecture **as it actually exists**. Items that a
 - **Prisma 7.10** + **PostgreSQL** — data layer (`prisma-client` generator, `@prisma/adapter-pg` driver adapter)
 - **@fontsource-variable/scoutie-sans** — primary UI font (self-hosted); **Caveat** via `next/font/google` (decorative)
 
-## Route structure (CURRENT — B3)
+## Route structure (CURRENT — B5)
 
 ```
 app/
@@ -29,6 +29,9 @@ app/
   authors/[slug]/         Author detail (dynamic, server-fetched)
   search/page.tsx         Search results (dynamic, server-fetched)
   cart/page.tsx           Shopping cart (static, client-side state)
+  checkout/page.tsx       Guest checkout — customer form + order summary
+  checkout/actions.ts     Server Action — order creation (Prisma transaction)
+  checkout/CheckoutClient.tsx  Client-side checkout form
   design-system/page.tsx  Internal reference page for design-token QA
 ```
 
@@ -77,6 +80,22 @@ The boundary is intentional: data crosses from server to client as serialisable 
 - **Cart:** `lib/cart.ts` — `useSyncExternalStore` over `localStorage` (key `bookie:cart`). Stores an array of `CartItem` objects with `bookId`, `slug`, `title`, `author`, `coverImage`, `price`, `quantity`. Max 99 per item. Actions: `addItem`, `updateQuantity`, `removeItem`, `clearCart`. Derived: `totalItems`, `subtotal`. SSR-safe (returns empty during server render). Used by: `FloatingCart`, `Navbar` (badge count), `BookCard` (Add to Cart), `BookDetailClient` (Add to Cart), `NewReleases` (Add to Cart), `/cart` page. **Replaced** old `CartContext` (which had no persistence and no item data).
 - **Recently viewed:** `lib/recently-viewed.ts` — client-side localStorage list of book ids (key `bookie:recently-viewed`, max 12, deduped, most-recent-first). Recorded on book detail page visit via `recordRecentlyViewed()`. Home section reads via `useSyncExternalStore`.
 - **Wishlist:** `lib/wishlist.ts` — client-side localStorage set of book ids (key `bookie:wishlist`, max 100). Toggle via `toggleWishlist()`. `WishlistButton` component uses `useSyncExternalStore` for SSR-safe reads. Active on book cards and book detail pages.
+
+## Checkout / Order creation (CURRENT — B5)
+
+- **Validation:** `lib/checkout.ts` — Zod schema (`checkoutSchema`) validates customer name, phone, email, shipping address (required), alternate phone + note (optional). Client and server both validate.
+- **Server Action:** `app/checkout/actions.ts` — `createOrder(formData, cartItems)` runs entirely server-side:
+  1. Validates customer input (Zod)
+  2. Validates cart items (non-empty, valid quantities, max 99)
+  3. Fetches books from database (must exist + be PUBLISHED)
+  4. Validates inventory (stock ≥ requested quantity)
+  5. Fetches authoritative prices from database (never trusts client prices)
+  6. Calculates totals server-side
+  7. Creates Order + OrderItems + OrderStatusHistory + InventoryTransactions in a single Prisma `$transaction`
+  8. Generates unique BookPass (`ORD-YYYY-XXXX` format)
+- **Security model:** client sends only `bookId` + `quantity`. Server reconstructs the full order with database prices. No client-submitted prices, subtotals, or totals are accepted.
+- **Cart boundary:** cart is only cleared after successful order creation. Failed orders leave the cart intact for retry.
+- **`CheckoutClient.tsx`:** client component with the form UI, inline validation, server error display, double-submit protection, empty cart guard, and success state showing the BookPass.
 
 ## Utilities (CURRENT — B3)
 

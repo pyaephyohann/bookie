@@ -75,3 +75,11 @@ Do **not** claim a check passed unless it actually passed.
 - **Wishlist pattern:** `lib/wishlist.ts` follows the same `useSyncExternalStore` + localStorage pattern as `lib/recently-viewed.ts` and `ThemeContext`. Client-side toggle; SSR-safe reads via server snapshot returning empty state.
 - **Recently-viewed recording:** call `recordRecentlyViewed(book.id)` in a `useEffect` on book detail pages. The recording is client-side only; no server involvement.
 - **Mock fallback:** every `get*BySlug` function tries Prisma first, falls back to mock data. This keeps the dev experience smooth without fake database records.
+
+## B5 learnings (checkout, order creation)
+
+- **Server-authoritative pricing:** the client sends only `bookId` + `quantity` to the server action. Prices, subtotals, and totals are always computed server-side from the database. Never accept client-submitted prices as authoritative.
+- **Atomic transactions:** order creation uses `prisma.$transaction` to ensure Order + OrderItems + OrderStatusHistory + InventoryTransactions are created together or not at all. Do not create partial orders.
+- **Cart clearing:** the cart is only cleared after the server confirms successful order creation. Failed orders leave the cart intact for retry.
+- **BookPass generation:** unique order reference (`ORD-YYYY-XXXX`) is generated server-side with collision checking. The client never generates order identifiers.
+- **Zod for validation:** `lib/checkout.ts` defines the Zod schema shared between client and server. Client validates immediately; server re-validates to prevent tampering.

@@ -66,3 +66,12 @@ Do **not** claim a check passed unless it actually passed.
 - **Stable snapshots:** `getSnapshot` must return a stable reference; cache the parsed array by value (compare length + order) to avoid infinite re-render loops.
 - **Sections own rendering, not selection:** the data layer decides which books each section shows (trending/best-sellers/promotions/recommended). Swapping ranking or recommendation logic later touches only `lib/data.ts`.
 - **Absent data is hidden, not stubbed:** optional fields (rating, reviews, cover image) are `null` and rendered conditionally; shelves always have an `EmptyState`.
+
+## B3 learnings (routes, search, wishlist)
+
+- **Internal links use `<Link>`:** Next.js lint requires `<Link>` from `next/link` for internal routes. Do not use `<a href="/path">` for routes that exist in the `app/` directory. Exception: `motion.a` elements for animated links (Framer Motion needs the actual `<a>` element).
+- **Dynamic routes:** `app/[slug]/page.tsx` is server-rendered on demand (`ƒ`). Use `generateMetadata` for SEO. Use `notFound()` for missing resources.
+- **Search via URL:** `/search?q=...` is server-rendered with the `q` param. The search input is controlled state; form submit navigates via `router.push()`. Do not use `window.location.href` for internal navigation.
+- **Wishlist pattern:** `lib/wishlist.ts` follows the same `useSyncExternalStore` + localStorage pattern as `lib/recently-viewed.ts` and `ThemeContext`. Client-side toggle; SSR-safe reads via server snapshot returning empty state.
+- **Recently-viewed recording:** call `recordRecentlyViewed(book.id)` in a `useEffect` on book detail pages. The recording is client-side only; no server involvement.
+- **Mock fallback:** every `get*BySlug` function tries Prisma first, falls back to mock data. This keeps the dev experience smooth without fake database records.

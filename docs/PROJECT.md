@@ -69,11 +69,11 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Theme (Light / Dark / System) | ✅ | localStorage + system preference, no-flash init |
 | Cart state | ✅ | Client-side count + add-to-cart feedback; no persistence or checkout |
 | Floating cart | ✅ | Bottom-left shortcut with item count |
-| Category pages | 🧭 | B3 — Books |
-| Book details page | 🧭 | B3 — Books |
-| Authors pages | 🧭 | B3 — Books |
-| Search backend | 🧭 | B3/B10 |
-| Wishlist | 🧭 | Planned |
+| Category pages | ✅ | `/categories` index + `/categories/[slug]` detail with book grid |
+| Book details page | ✅ | `/books/[slug]` — cover, title, author, price, description, wishlist, add-to-cart, recently-viewed recording, online reading entry point |
+| Authors pages | ✅ | `/authors` index + `/authors/[slug]` detail with book grid |
+| Search backend | ✅ | `/search?q=...` — real Prisma search by title, author, category, ISBN |
+| Wishlist | ✅ | Client-side localStorage, SSR-safe, toggle from book cards and detail pages |
 | Cart page | 🧭 | B4 — Cart |
 | Checkout + customer information | 🧭 | B5 — Checkout |
 | Payment (KPay / AYA Pay) | 🧭 | B6 — Payment |

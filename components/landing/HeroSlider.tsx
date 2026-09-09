@@ -85,7 +85,7 @@ export function HeroSlider({ slides }: { slides: HeroSlide[] }) {
                 </p>
                 <div className="flex flex-wrap items-center gap-4 pt-1">
                   <motion.a
-                    href={`#/books/${slide.bookSlug}`}
+                    href={`/books/${slide.bookSlug}`}
                     whileHover={reduce ? undefined : { scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     className="rounded-control bg-ink px-5 py-2.5 text-button text-text-inverse transition-colors hover:bg-ink-hover"

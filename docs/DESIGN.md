@@ -100,3 +100,72 @@ Reusable patterns added for Home & Discovery. All follow the token system above 
 ### Recently viewed
 
 - Horizontal shelf identical to Trending; reads from localStorage via `useSyncExternalStore`. Shows a calm empty state ("Nothing here yet") when empty — no flicker, no hydration mismatch.
+
+## Catalogue pages (B3)
+
+### Book detail page
+
+- Server-fetched (`getBookBySlug`), rendered via `BookDetailClient` for interactivity.
+- Two-column layout on desktop (cover + info); stacked on mobile.
+- Breadcrumb: "Back to Home" with chevron.
+- Book cover uses `BookCover` (image or placeholder).
+- Title, author(s) as links to author page, categories as pill links to category page.
+- Price with compare-at discount badge.
+- Actions: Add to Cart (yellow button, loading/added states), Wishlist toggle (heart icon).
+- Stock indicator (text only, no fake numbers).
+- Online reading entry point when `isReadableOnline`.
+- Description, metadata (publisher, published date, ISBN) in a details section.
+- Recently viewed recorded on mount via `recordRecentlyViewed()`.
+- Framer Motion entrance animation (fade up).
+
+### Categories page
+
+- Grid of category tiles (editorial asymmetric layout).
+- Each tile shows name, book count, hover lift + arrow.
+- Clickable → `/categories/[slug]`.
+- Empty state when no categories.
+
+### Category detail
+
+- Header: back link, name, description, book count.
+- Responsive grid of `BookCard` components.
+- Empty state when no books.
+
+### Authors page
+
+- Grid of author cards: avatar (photo or gradient initials), name, bio, book count.
+- Clickable → `/authors/[slug]`.
+- Empty state when no authors.
+
+### Author detail
+
+- Header: back link, avatar, name, bio, book count.
+- Responsive grid of `BookCard` components.
+- Empty state when no books.
+
+### Search results
+
+- Search input with real-time query state.
+- Form submit navigates to `/search?q=...`.
+- Results displayed as responsive `BookCard` grid.
+- Result count text.
+- Empty state with "Browse Home" action.
+- Server-fetched via `searchBooks()` (Prisma OR query).
+
+### Wishlist
+
+- `WishlistButton` component: heart icon, toggle active/inactive.
+- Active state: filled heart, red tint background.
+- Inactive state: outline heart, muted background.
+- SSR-safe via `useSyncExternalStore` (same pattern as theme/recently-viewed).
+- Storage key: `bookie:wishlist`, max 100 ids.
+- Accessible: `aria-pressed`, `aria-label` changes with state.
+
+### Navigation wiring
+
+- All internal `#/...` placeholder links replaced with real routes.
+- `BookCard` links to `/books/[slug]`.
+- `SearchCommand` navigates to `/search?q=...` on Enter.
+- Navbar: Authors → `/authors`, Categories mega-menu → `/categories/[slug]`.
+- Hero slider, BestSellers, CategoryShowcase, PopularAuthors all use real links.
+- FloatingCart → `/cart`.

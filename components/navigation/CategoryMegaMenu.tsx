@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 import { MOCK_CATEGORIES } from "@/lib/mock-data";
 
 /**
@@ -39,7 +40,7 @@ export function CategoryMegaMenu({ open, onClose }: CategoryMegaMenuProps) {
                   {column.map((category, i) => (
                     <motion.a
                       key={category.name}
-                      href={`#/categories/${category.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
+                      href={`/categories/${category.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
                       onClick={onClose}
                       initial={reduce ? false : { opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -60,13 +61,13 @@ export function CategoryMegaMenu({ open, onClose }: CategoryMegaMenuProps) {
               <span className="text-caption text-text-muted">
                 {MOCK_CATEGORIES.reduce((sum, c) => sum + c.count, 0)} books across {MOCK_CATEGORIES.length} categories
               </span>
-              <a
-                href="#/categories"
+              <Link
+                href="/categories"
                 onClick={onClose}
                 className="text-caption font-semibold text-text underline-offset-4 hover:underline"
               >
                 Browse all →
-              </a>
+              </Link>
             </div>
           </div>
         </motion.div>

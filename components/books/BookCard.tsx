@@ -91,7 +91,7 @@ export function BookCard({ book, animate = "visible" }: BookCardProps) {
             {addState === "added" ? "Added" : "Add to Cart"}
           </motion.button>
           <motion.a
-            href={`#/books/${book.slug}`}
+            href={`/books/${book.slug}`}
             whileTap={{ scale: 0.95 }}
             aria-label={`View ${book.title}`}
             className="flex size-9 items-center justify-center rounded-control border border-border-strong bg-surface text-text shadow-sm transition-colors hover:bg-surface-muted"
@@ -107,7 +107,7 @@ export function BookCard({ book, animate = "visible" }: BookCardProps) {
           {book.category}
         </span>
         <h3 className="text-h4 leading-snug">
-          <a href={`#/books/${book.slug}`} className="transition-colors hover:text-text-secondary">
+          <a href={`/books/${book.slug}`} className="transition-colors hover:text-text-secondary">
             {book.title}
           </a>
         </h3>

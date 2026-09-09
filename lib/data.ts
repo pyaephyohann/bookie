@@ -372,3 +372,314 @@ export async function getHomePageData(): Promise<HomePageData> {
   }
   return buildMockHomeData();
 }
+
+/* ============================================================
+   B3 — Book detail, category, author, search
+   ============================================================
+
+   All functions follow the same pattern as getHomePageData:
+   try the database first, fall back to mock data if empty/unreachable.
+
+   Mock fallback is for local development when the database has no rows.
+   No fake database records are created.
+   ============================================================ */
+
+export interface BookAuthor {
+  name: string;
+  slug: string;
+  photoUrl: string | null;
+}
+
+export interface BookCategory {
+  name: string;
+  slug: string;
+}
+
+export interface BookDetail {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  isbn: string | null;
+  publisher: string | null;
+  publishedAt: string | null;
+  price: number;
+  compareAtPrice: number | null;
+  stockQuantity: number;
+  coverImage: string | null;
+  isReadableOnline: boolean;
+  gradient: [string, string];
+  authors: BookAuthor[];
+  categories: BookCategory[];
+}
+
+export interface CategoryDetail {
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  bookCount: number;
+  books: BookSummary[];
+}
+
+export interface AuthorDetail {
+  name: string;
+  slug: string;
+  biography: string | null;
+  photoUrl: string | null;
+  bookCount: number;
+  books: BookSummary[];
+  gradient: [string, string];
+}
+
+/* ---------- B3 Prisma includes ---------- */
+
+const bookDetailInclude = {
+  categories: { include: { category: true } },
+  authors: { include: { author: true } },
+} satisfies Prisma.BookInclude;
+
+type DbBookDetail = Prisma.BookGetPayload<{ include: typeof bookDetailInclude }>;
+
+/* ---------- B3 database adapters ---------- */
+
+function dbBookDetailToDetail(book: DbBookDetail): BookDetail {
+  return {
+    id: book.id,
+    slug: book.slug,
+    title: book.title,
+    description: book.description,
+    isbn: book.isbn,
+    publisher: book.publisher,
+    publishedAt: book.publishedAt ? book.publishedAt.toISOString() : null,
+    price: Number(book.price),
+    compareAtPrice: book.compareAtPrice === null ? null : Number(book.compareAtPrice),
+    stockQuantity: book.stockQuantity,
+    coverImage: book.coverImage,
+    isReadableOnline: book.isReadableOnline,
+    gradient: gradientFor(book.id),
+    authors: book.authors.map((ba) => ({
+      name: ba.author.name,
+      slug: ba.author.slug,
+      photoUrl: ba.author.photoUrl,
+    })),
+    categories: book.categories.map((cb) => ({
+      name: cb.category.name,
+      slug: cb.category.slug,
+    })),
+  };
+}
+
+function dbCategoryToDetail(cat: {
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  books: { book: DbBook }[];
+  _count: { books: number };
+}): CategoryDetail {
+  return {
+    name: cat.name,
+    slug: cat.slug,
+    description: cat.description,
+    imageUrl: cat.imageUrl,
+    bookCount: cat._count.books,
+    books: cat.books.map((cb) => dbBookToSummary(cb.book)),
+  };
+}
+
+function dbAuthorToDetail(author: {
+  id: string;
+  name: string;
+  slug: string;
+  biography: string | null;
+  photoUrl: string | null;
+  books: { book: DbBook }[];
+  _count: { books: number };
+}): AuthorDetail {
+  return {
+    name: author.name,
+    slug: author.slug,
+    biography: author.biography,
+    photoUrl: author.photoUrl,
+    bookCount: author._count.books,
+    books: author.books.map((ba) => dbBookToSummary(ba.book)),
+    gradient: gradientFor(author.id),
+  };
+}
+
+/* ---------- B3 server-side functions ---------- */
+
+export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
+  try {
+    const book = await prisma.book.findUnique({
+      where: { slug, status: "PUBLISHED" },
+      include: bookDetailInclude,
+    });
+    if (book) return dbBookDetailToDetail(book as DbBookDetail);
+  } catch (error) {
+    console.warn("[bookie] getBookBySlug failed:", error instanceof Error ? error.message : error);
+  }
+  // Mock fallback
+  const mock = MOCK_BOOKS.find((b) => b.slug === slug);
+  if (!mock) return null;
+  return {
+    id: mock.id,
+    slug: mock.slug,
+    title: mock.title,
+    description: `A compelling book by ${mock.author} in the ${mock.category} genre.`,
+    isbn: null,
+    publisher: null,
+    publishedAt: null,
+    price: mock.price,
+    compareAtPrice: mock.compareAtPrice ?? null,
+    stockQuantity: 10,
+    coverImage: null,
+    isReadableOnline: false,
+    gradient: mock.cover,
+    authors: [{ name: mock.author, slug: slugify(mock.author), photoUrl: null }],
+    categories: [{ name: mock.category, slug: slugify(mock.category) }],
+  };
+}
+
+export async function getCategoryBySlug(slug: string): Promise<CategoryDetail | null> {
+  try {
+    const category = await prisma.category.findUnique({
+      where: { slug },
+      include: {
+        books: {
+          include: { book: { include: bookInclude } },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        },
+        _count: { select: { books: true } },
+      },
+    });
+    if (category) {
+      return dbCategoryToDetail(category as Parameters<typeof dbCategoryToDetail>[0]);
+    }
+  } catch (error) {
+    console.warn("[bookie] getCategoryBySlug failed:", error instanceof Error ? error.message : error);
+  }
+  // Mock fallback
+  const mockCat = MOCK_CATEGORIES.find((c) => slugify(c.name) === slug);
+  if (!mockCat) return null;
+  const mockBooks = MOCK_BOOKS.filter((b) => b.category === mockCat.name).map(toBookSummary);
+  return {
+    name: mockCat.name,
+    slug,
+    description: null,
+    imageUrl: null,
+    bookCount: mockCat.count,
+    books: mockBooks,
+  };
+}
+
+export async function getAuthorBySlug(slug: string): Promise<AuthorDetail | null> {
+  try {
+    const author = await prisma.author.findUnique({
+      where: { slug },
+      include: {
+        books: {
+          include: { book: { include: bookInclude } },
+          orderBy: { sortOrder: "asc" },
+          take: 50,
+        },
+        _count: { select: { books: true } },
+      },
+    });
+    if (author) {
+      return dbAuthorToDetail(author as Parameters<typeof dbAuthorToDetail>[0]);
+    }
+  } catch (error) {
+    console.warn("[bookie] getAuthorBySlug failed:", error instanceof Error ? error.message : error);
+  }
+  // Mock fallback
+  const mockAuthor = MOCK_AUTHORS.find((a) => a.slug === slug);
+  if (!mockAuthor) return null;
+  const mockBooks = MOCK_BOOKS.filter((b) => b.author === mockAuthor.name).map(toBookSummary);
+  return {
+    name: mockAuthor.name,
+    slug,
+    biography: mockAuthor.description,
+    photoUrl: null,
+    bookCount: mockAuthor.books,
+    books: mockBooks,
+    gradient: mockAuthor.cover,
+  };
+}
+
+export async function getAllCategories(): Promise<CategorySummary[]> {
+  try {
+    const categories = await prisma.category.findMany({
+      include: { _count: { select: { books: true } } },
+      orderBy: { name: "asc" },
+    });
+    if (categories.length > 0) {
+      return categories.map((c) => ({ name: c.name, slug: c.slug, count: c._count.books }));
+    }
+  } catch (error) {
+    console.warn("[bookie] getAllCategories failed:", error instanceof Error ? error.message : error);
+  }
+  return MOCK_CATEGORIES.map(toCategorySummary);
+}
+
+export async function getAllAuthors(): Promise<AuthorSummary[]> {
+  try {
+    const authors = await prisma.author.findMany({
+      include: { _count: { select: { books: true } } },
+      orderBy: { name: "asc" },
+    });
+    if (authors.length > 0) {
+      return authors.map((a) => ({
+        slug: a.slug,
+        name: a.name,
+        books: a._count.books,
+        description: a.biography ?? "",
+        photoUrl: a.photoUrl,
+        gradient: gradientFor(a.id),
+      }));
+    }
+  } catch (error) {
+    console.warn("[bookie] getAllAuthors failed:", error instanceof Error ? error.message : error);
+  }
+  return MOCK_AUTHORS.map(toAuthorSummary);
+}
+
+export interface SearchResults {
+  books: BookSummary[];
+  query: string;
+}
+
+export async function searchBooks(rawQuery: string): Promise<SearchResults> {
+  const query = rawQuery.trim();
+  if (!query) return { books: [], query: "" };
+  try {
+    const books = await prisma.book.findMany({
+      where: {
+        status: "PUBLISHED",
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { isbn: query },
+          { categories: { some: { category: { name: { contains: query, mode: "insensitive" } } } } },
+          { authors: { some: { author: { name: { contains: query, mode: "insensitive" } } } } },
+        ],
+      },
+      include: bookInclude,
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+    return { books: books.map(dbBookToSummary), query };
+  } catch (error) {
+    console.warn("[bookie] searchBooks failed:", error instanceof Error ? error.message : error);
+  }
+  // Mock fallback
+  const q = query.toLowerCase();
+  const filtered = MOCK_BOOKS.filter(
+    (b) =>
+      b.title.toLowerCase().includes(q) ||
+      b.author.toLowerCase().includes(q) ||
+      b.category.toLowerCase().includes(q),
+  );
+  return { books: filtered.map(toBookSummary), query };
+}

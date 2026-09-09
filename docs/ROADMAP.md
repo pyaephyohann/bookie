@@ -6,7 +6,7 @@ The Bookie user-facing application is delivered in exactly 10 milestones. This i
 |---|---|---|
 | B1 | **User App Foundation** | ✅ Completed — Navbar, logo, fonts, theme, responsive layout, navigation structure, Categories menu foundation, Search shortcut foundation, reusable UI foundation, animation foundation, documentation |
 | B2 | **Home & Discovery** | ✅ Completed — data-driven discovery Home (Prisma with mock fallback): hero slider, browse categories, trending, best sellers, new releases, promotions, featured authors, recommended, recently viewed; docs updated |
-| B3 | **Books** | Book details, book browsing, book-related pages |
+| B3 | **Books** | ✅ Completed — book detail, categories index/detail, authors index/detail, search, wishlist, recently-viewed recording, real routes replacing placeholders |
 | B4 | **Cart** | Cart page and cart state (persistence) |
 | B5 | **Checkout** | Customer information form, order creation |
 | B6 | **Payment** | KPay / AYA Pay, payment slip upload, verification flow |

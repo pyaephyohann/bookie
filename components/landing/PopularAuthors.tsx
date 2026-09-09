@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronRight, Users } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
@@ -20,12 +21,12 @@ export function PopularAuthors({ authors }: { authors: AuthorSummary[] }) {
           description="The voices readers keep coming back to."
           funNote="every book has a person behind it"
           action={
-            <a
-              href="#/authors"
+            <Link
+              href="/authors"
               className="inline-flex items-center gap-1 text-body-sm font-semibold text-text underline-offset-4 hover:underline"
             >
               All authors <ChevronRight className="size-4" aria-hidden />
-            </a>
+            </Link>
           }
         >
           <span id="authors-heading" className="sr-only">Popular authors</span>
@@ -49,7 +50,7 @@ export function PopularAuthors({ authors }: { authors: AuthorSummary[] }) {
           {authors.map((author) => (
             <motion.li key={author.slug} variants={fadeUp(reduce)} role="listitem">
               <motion.a
-                href={`#/authors/${author.slug}`}
+                href={`/authors/${author.slug}`}
                 whileHover={reduce ? undefined : { y: -4 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="group flex h-full items-center gap-4 rounded-card border border-border bg-background p-4 shadow-xs transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md"

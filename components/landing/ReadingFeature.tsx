@@ -43,7 +43,7 @@ export function ReadingFeature({ book }: { book: BookSummary | null }) {
 
           <motion.div variants={fadeUp(reduce)} className="mt-8">
             <motion.a
-              href="#/reader"
+              href="/reader"
               whileHover={reduce ? undefined : { scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className="inline-flex items-center gap-2 rounded-control bg-brand px-6 py-3 text-button text-brand-on shadow-sm transition-colors hover:bg-brand-hover"

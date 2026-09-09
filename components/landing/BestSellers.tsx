@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronRight, Trophy } from "lucide-react";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
@@ -20,12 +21,12 @@ export function BestSellers({ books }: { books: BookSummary[] }) {
           title="The books everyone owns"
           description="The titles readers keep coming back to — updated as orders roll in."
           action={
-            <a
-              href="#/best-sellers"
+            <Link
+              href="/categories"
               className="inline-flex items-center gap-1 text-body-sm font-semibold text-text underline-offset-4 hover:underline"
             >
               View all best sellers <ChevronRight className="size-4" aria-hidden />
-            </a>
+            </Link>
           }
         >
           <span id="bestsellers-heading" className="sr-only">Best sellers</span>
@@ -47,8 +48,8 @@ export function BestSellers({ books }: { books: BookSummary[] }) {
         >
           {ranked.map((book, i) => (
             <motion.li key={book.id} variants={fadeUp(reduce)}>
-              <a
-                href={`#/books/${book.slug}`}
+              <Link
+                href={`/books/${book.slug}`}
                 className={`group flex items-center gap-5 rounded-card border border-border bg-background p-4 shadow-xs transition-all duration-200 hover:border-border-strong hover:shadow-md sm:gap-6 sm:p-5 ${
                   i < 3 ? "md:flex-row md:items-center" : ""
                 }`}
@@ -77,7 +78,7 @@ export function BestSellers({ books }: { books: BookSummary[] }) {
                   )}
                 </span>
                 <span className="shrink-0 text-h4 font-bold">{formatPrice(book.price)}</span>
-              </a>
+              </Link>
             </motion.li>
           ))}
         </motion.ol>

@@ -14,44 +14,52 @@ This document describes the architecture **as it actually exists**. Items that a
 - **Prisma 7.10** + **PostgreSQL** — data layer (`prisma-client` generator, `@prisma/adapter-pg` driver adapter)
 - **@fontsource-variable/scoutie-sans** — primary UI font (self-hosted); **Caveat** via `next/font/google` (decorative)
 
-## Route structure (CURRENT)
+## Route structure (CURRENT — B3)
 
 ```
 app/
-  layout.tsx          Root layout: providers, navbar, footer, floating cart, theme init script
-  page.tsx            Home — composes the landing sections
-  globals.css         Design tokens + base/component layers (Tailwind v4 @theme)
-  icon.png            Favicon
-  design-system/
-    page.tsx          Internal reference page for design-token QA
+  layout.tsx              Root layout: providers, navbar, footer, floating cart, theme init script
+  page.tsx                Home — composes the landing sections
+  globals.css             Design tokens + base/component layers (Tailwind v4 @theme)
+  icon.png                Favicon
+  books/[slug]/page.tsx   Book detail (dynamic, server-fetched)
+  categories/page.tsx     Categories index (static)
+  categories/[slug]/      Category detail (dynamic, server-fetched)
+  authors/page.tsx        Authors index (static)
+  authors/[slug]/         Author detail (dynamic, server-fetched)
+  search/page.tsx         Search results (dynamic, server-fetched)
+  design-system/page.tsx  Internal reference page for design-token QA
 ```
 
-All pages are server components; interactive pieces are isolated in `"use client"` components.
-
-### Route organization (PLANNED)
-
-Routes for books, categories, authors, cart, checkout, payment, order tracking, reading, and admin do not exist yet. The navbar currently points at `#/...` anchors for these destinations — they are placeholders for the future routes, kept deliberately light.
+All pages are server components; interactive pieces are isolated in `"use client"` components. Dynamic routes (`[slug]`) are server-rendered on demand; index pages are statically prerendered.
 
 ## Components
 
 ```
 components/
   ui/           Button, Input/Textarea/Select, Badge (+ status badges), SectionHeading, EmptyState — reusable primitives
-  books/        BookCard, BookCover (real image or placeholder art), RecentlyViewed (localStorage shelf)
+  books/        BookCard, BookCover (real image or placeholder art), RecentlyViewed (localStorage shelf), WishlistButton
   cart/         CartContext (client state), FloatingCart
   navigation/   Navbar, CategoryMegaMenu (desktop), SearchCommand (⌘K palette), Footer
   theme/        ThemeContext (light/dark/system), ThemeToggle
   landing/      Hero, HeroSlider, TrendingBooks, BestSellers, NewReleases, Promotions,
                 CategoryShowcase, PopularAuthors, RecommendedBooks, ReadingFeature,
                 BookPassFeature, FinalCTA
+
+app/books/[slug]/BookDetailClient.tsx     Client-side book detail (wishlist, cart, recently-viewed)
+app/categories/CategoriesListClient.tsx   Client-side categories grid
+app/categories/[slug]/CategoryDetailClient.tsx  Client-side category book grid
+app/authors/AuthorsListClient.tsx         Client-side authors list
+app/authors/[slug]/AuthorDetailClient.tsx  Client-side author detail with book grid
+app/search/SearchResultsClient.tsx        Client-side search results
 ```
 
-## Server / client boundaries (CURRENT)
+## Server / client boundaries (CURRENT — B3)
 
-- **Server components:** `app/layout.tsx`, `app/page.tsx`, the landing section shells that don't need interactivity, `Footer`, `app/design-system/page.tsx`.
-- **Client components:** anything with state/interactivity — `Navbar`, `CategoryMegaMenu`, `SearchCommand`, `ThemeToggle`, `Hero`, `HeroSlider`, all book-display sections, `BookCard`, `FloatingCart`, `CartContext`, `ThemeContext`.
+- **Server components:** `app/layout.tsx`, `app/page.tsx` (Home), `app/books/[slug]/page.tsx`, `app/categories/page.tsx`, `app/categories/[slug]/page.tsx`, `app/authors/page.tsx`, `app/authors/[slug]/page.tsx`, `app/search/page.tsx`, `Footer`, `app/design-system/page.tsx`. Each server page fetches data from `lib/data.ts` via Prisma and passes it as props.
+- **Client components:** anything with state/interactivity — `Navbar`, `CategoryMegaMenu`, `SearchCommand`, `ThemeToggle`, `Hero`, `HeroSlider`, all book-display sections, `BookCard`, `FloatingCart`, `CartContext`, `ThemeContext`, `WishlistButton`, and the `*Client.tsx` components for each B3 route.
 
-The boundary is intentional: motion + event handlers force `"use client"` on the landing sections. B2 data crosses the boundary as serialisable props from the server page into client sections (no client-side fetching, no Prisma in client components).
+The boundary is intentional: data crosses from server to client as serialisable props. Prisma is only imported in server components or `lib/data.ts`. Client components receive pre-fetched data and handle interactivity (wishlist toggle, cart add, recently-viewed recording, animations).
 
 ## Home data flow (CURRENT — B2)
 
@@ -62,16 +70,18 @@ The boundary is intentional: motion + event handlers force `"use client"` on the
 - **Hero:** slides are a small **typed static configuration** (not CMS/database-driven in B2) — see `lib/mock-data.ts` `MOCK_HERO_SLIDES`, consumed via the `HeroSlide` type.
 - The page is statically prerendered at build time (`○`); data is baked at build. `PLANNED:` ISR/revalidation and dynamic merchandising (B10).
 
-## State management (CURRENT)
+## State management (CURRENT — B3)
 
 - **Theme:** `ThemeContext` — `useSyncExternalStore` over `localStorage` + `matchMedia("(prefers-color-scheme: dark)")`, with a pre-paint inline init script in the layout to avoid theme flash. Storage key: `bookie-theme`.
 - **Cart:** `CartContext` — client-side `count` + `addItem` + `lastAddedAt` (used to bounce the floating cart). No persistence (`PLANNED`: B4).
-- **Recently viewed:** `lib/recently-viewed.ts` — client-side localStorage list of book ids (key `bookie:recently-viewed`, max 12, deduped, most-recent-first). The Home section (`components/books/RecentlyViewed.tsx`) reads it with `useSyncExternalStore` (same pattern as the theme store) so it is SSR-safe and reacts to same-tab writes via a window event. Recording views is `PLANNED`: B3 detail pages call `recordRecentlyViewed()`.
+- **Recently viewed:** `lib/recently-viewed.ts` — client-side localStorage list of book ids (key `bookie:recently-viewed`, max 12, deduped, most-recent-first). Recorded on book detail page visit via `recordRecentlyViewed()`. Home section reads via `useSyncExternalStore`.
+- **Wishlist:** `lib/wishlist.ts` — client-side localStorage set of book ids (key `bookie:wishlist`, max 100). Toggle via `toggleWishlist()`. `WishlistButton` component uses `useSyncExternalStore` for SSR-safe reads. Active on book cards and book detail pages.
 
-## Utilities (CURRENT)
+## Utilities (CURRENT — B3)
 
-- `lib/data.ts` — server-only Home discovery layer: shared UI types + Prisma queries + mock fallback (see *Home data flow*).
-- `lib/recently-viewed.ts` — localStorage recently-viewed helpers.
+- `lib/data.ts` — server-only data layer: shared UI types + Prisma queries + mock fallback (see *Home data flow* + B3 query functions).
+- `lib/recently-viewed.ts` — localStorage recently-viewed helpers (get, record, clear, window event).
+- `lib/wishlist.ts` — localStorage wishlist helpers (get, toggle, check, window event).
 - `lib/motion.ts` — `fadeUp` / `stagger` / `viewportOnce` variants, all reduced-motion aware.
 - `lib/mock-data.ts` — mock catalogue (books, categories, authors, hero slides) + `formatPrice`, `discountPercent`, `BOOKIE_PASS_EXAMPLE` helpers. Used as the development fallback and by B1 foundations.
 - `lib/prisma.ts` — PrismaClient singleton with the `PrismaPg` driver adapter (hot-reload safe).
@@ -82,7 +92,8 @@ The boundary is intentional: motion + event handlers force `"use client"` on the
 - `prisma.config.ts` — CLI config: `schema`, `migrations.path`, `datasource.url = env("DATABASE_URL")`.
 - `lib/prisma.ts` — runtime client: `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })`.
 - Env: `.env` (local, git-ignored) / `.env.example` (committed placeholder). Production: `DATABASE_URL` environment variable.
-- **Home queries (CURRENT):** `lib/data.ts` reads `PUBLISHED` books (with first category/author), categories with book counts, authors with book counts, `FeaturedBook` rows per section (TRENDING / BEST_SELLER / RECOMMENDED), and active `Promotion` rows with their linked books. Promotions are applied as price adjustments (percentage/fixed) before display. Prisma is only ever imported on the server — never in client components. `PLANNED:` B3+ pages, migrations, seed strategy.
+- **Home queries (CURRENT):** `lib/data.ts` reads `PUBLISHED` books (with first category/author), categories with book counts, authors with book counts, `FeaturedBook` rows per section (TRENDING / BEST_SELLER / RECOMMENDED), and active `Promotion` rows with their linked books. Promotions are applied as price adjustments (percentage/fixed) before display.
+- **B3 queries (CURRENT):** `getBookBySlug(slug)` — full book detail with all authors and categories. `getCategoryBySlug(slug)` / `getAuthorBySlug(slug)` — detail with related books. `getAllCategories()` / `getAllAuthors()` — index lists. `searchBooks(query)` — full-text search by title, author, category name, ISBN. All follow the same try-Prisma-then-fallback-to-mock pattern. Prisma is only ever imported on the server — never in client components. `PLANNED:` migrations, seed strategy.
 
 ## File / upload handling (CURRENT)
 

@@ -13,7 +13,7 @@ import { SearchCommand } from "./SearchCommand";
 
 const NAV_LINKS = [
   { label: "Home", href: "/", internal: true },
-  { label: "Authors", href: "#/authors", internal: false },
+  { label: "Authors", href: "/authors", internal: true },
 ];
 
 export function Navbar() {
@@ -160,7 +160,7 @@ export function Navbar() {
             </motion.button>
 
             <a
-              href="#/track"
+              href="/track"
               className="flex items-center gap-1.5 rounded-control px-3 py-2 text-body-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text"
             >
               <PackageSearch className="size-4" aria-hidden />
@@ -168,7 +168,7 @@ export function Navbar() {
             </a>
 
             <a
-              href="#/cart"
+              href="/cart"
               aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`}
               className="relative flex size-9 items-center justify-center rounded-control text-text-secondary transition-colors hover:bg-surface-muted hover:text-text"
             >
@@ -283,17 +283,15 @@ function MobileMenu({ onNavigate }: { onNavigate: () => void }) {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
-
+      </AnimatePresence>            <Link
+              href="/authors"
+              onClick={onNavigate}
+              className="block rounded-control px-3 py-2.5 text-body font-medium text-text hover:bg-surface-muted"
+            >
+              Authors
+            </Link>
       <a
-        href="#/authors"
-        onClick={onNavigate}
-        className="block rounded-control px-3 py-2.5 text-body font-medium text-text hover:bg-surface-muted"
-      >
-        Authors
-      </a>
-      <a
-        href="#/track"
+        href="/track"
         onClick={onNavigate}
         className="flex items-center gap-2 rounded-control px-3 py-2.5 text-body font-medium text-text hover:bg-surface-muted"
       >
@@ -303,7 +301,7 @@ function MobileMenu({ onNavigate }: { onNavigate: () => void }) {
       </a>
 
       <a
-        href="#/cart"
+        href="/cart"
         onClick={onNavigate}
         className="mt-2 flex items-center justify-center gap-2 rounded-control bg-brand px-3 py-3 text-button text-brand-on"
       >

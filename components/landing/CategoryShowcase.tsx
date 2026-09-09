@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, LayoutGrid } from "lucide-react";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
@@ -28,12 +29,12 @@ export function CategoryShowcase({ categories }: { categories: CategorySummary[]
         description="From quiet literary fiction to loud space operas — find your corner of the library."
         funNote="where will you wander today?"
         action={
-          <a
-            href="#/categories"
+          <Link
+            href="/categories"
             className="text-body-sm font-semibold text-text underline-offset-4 hover:underline"
           >
             All {categories.length} categories →
-          </a>
+          </Link>
         }
       >
         <span id="categories-heading" className="sr-only">Explore by category</span>
@@ -59,7 +60,7 @@ export function CategoryShowcase({ categories }: { categories: CategorySummary[]
             variants={fadeUp(reduce)}
             whileHover={reduce ? undefined : { y: -4 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            href={`#/categories/${category.slug}`}
+            href={`/categories/${category.slug}`}
             className={`group relative flex flex-col justify-end overflow-hidden rounded-card border border-border bg-surface p-5 shadow-xs transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md ${TILE_STYLES[category.name] ?? ""}`}
           >
             {/* Decorative arc */}

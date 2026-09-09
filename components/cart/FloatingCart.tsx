@@ -14,7 +14,7 @@ export function FloatingCart() {
 
   return (
     <motion.a
-      href="#/cart"
+      href="/cart"
       aria-label={count > 0 ? `Open cart, ${count} item${count === 1 ? "" : "s"}` : "Open cart"}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}

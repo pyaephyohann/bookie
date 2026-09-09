@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, BookOpen, PackageSearch, Search, SearchX } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MiniBookCover } from "@/components/books/BookCover";
 import { MOCK_BOOKS, MOCK_CATEGORIES } from "@/lib/mock-data";
 
@@ -43,6 +44,8 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
+  const router = useRouter();
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     const books = q
@@ -55,6 +58,22 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
       : MOCK_CATEGORIES.slice(0, 5);
     return { books, categories };
   }, [query]);
+
+  // Navigate to /search?q=... on Enter
+  const handleSearch = useCallback(() => {
+    const trimmed = query.trim();
+    if (trimmed) {
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+      onClose();
+    }
+  }, [query, router, onClose]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") handleSearch();
+    },
+    [handleSearch],
+  );
 
   const empty = results.books.length === 0 && results.categories.length === 0;
 
@@ -98,6 +117,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
             aria-label="Search books, authors and categories"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Search books, authors, categories…"
             className="h-14 w-full bg-transparent text-body-lg outline-none placeholder:text-text-disabled"
           />
@@ -125,7 +145,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
                       key={b.id}
                       role="option"
                       aria-selected="false"
-                      href={`#/books/${b.slug}`}
+                      href={`/books/${b.slug}`}
                       onClick={onClose}
                       className="group flex items-center gap-3 rounded-control p-2 transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted focus-visible:outline-none"
                     >
@@ -149,7 +169,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
                       key={c.name}
                       role="option"
                       aria-selected="false"
-                      href={`#/categories/${slugify(c.name)}`}
+                      href={`/categories/${slugify(c.name)}`}
                       onClick={onClose}
                       className="group flex items-center gap-3 rounded-control p-2 transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted focus-visible:outline-none"
                     >

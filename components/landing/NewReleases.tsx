@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { BookCover } from "@/components/books/BookCover";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { useCart } from "@/components/cart/CartContext";
+import { useCartStore } from "@/lib/cart";
 import { motion, useReducedMotion } from "framer-motion";
 import { Plus, Check, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -73,7 +73,7 @@ export function NewReleases({ books }: { books: BookSummary[] }) {
 }
 
 function NewReleaseCard({ book }: { book: BookSummary }) {
-  const { addItem } = useCart();
+  const { addItem } = useCartStore();
   const reduce = useReducedMotion() ?? false;
   const [state, setState] = useState<"idle" | "loading" | "added">("idle");
 
@@ -81,7 +81,14 @@ function NewReleaseCard({ book }: { book: BookSummary }) {
     if (state !== "idle") return;
     setState("loading");
     window.setTimeout(() => {
-      addItem();
+      addItem({
+        bookId: book.id,
+        slug: book.slug,
+        title: book.title,
+        author: book.author,
+        coverImage: book.coverImage,
+        price: book.price,
+      });
       setState("added");
       window.setTimeout(() => setState("idle"), 1400);
     }, 450);

@@ -5,7 +5,7 @@ import { ChevronDown, Menu, PackageSearch, Search, ShoppingCart, X } from "lucid
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCart } from "@/components/cart/CartContext";
+import { useCartStore } from "@/lib/cart";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { MOCK_CATEGORIES } from "@/lib/mock-data";
 import { CategoryMegaMenu } from "./CategoryMegaMenu";
@@ -22,7 +22,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const closeTimer = useRef<number | null>(null);
-  const { count } = useCart();
+  const { totalItems } = useCartStore();
   const reduce = useReducedMotion() ?? false;
 
   // Cmd/Ctrl+K opens search
@@ -169,21 +169,21 @@ export function Navbar() {
 
             <a
               href="/cart"
-              aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`}
+              aria-label={`Cart, ${totalItems} item${totalItems === 1 ? "" : "s"}`}
               className="relative flex size-9 items-center justify-center rounded-control text-text-secondary transition-colors hover:bg-surface-muted hover:text-text"
             >
               <ShoppingCart className="size-[18px]" aria-hidden />
               <AnimatePresence>
-                {count > 0 && (
+                {totalItems > 0 && (
                   <motion.span
-                    key={count}
+                    key={totalItems}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                     transition={{ type: "spring", stiffness: 500, damping: 22 }}
                     className="absolute -right-0.5 -top-0.5 flex min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[0.5625rem] font-bold leading-4 text-brand-on ring-2 ring-background"
                   >
-                    {count}
+                    {totalItems}
                   </motion.span>
                 )}
               </AnimatePresence>

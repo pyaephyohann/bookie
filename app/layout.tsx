@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Caveat } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/components/cart/CartContext";
 import { FloatingCart } from "@/components/cart/FloatingCart";
 import { Footer } from "@/components/navigation/Footer";
 import { Navbar } from "@/components/navigation/Navbar";
@@ -30,14 +29,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
-          <CartProvider>
-            <Navbar />
-            <main id="main" className="flex-1">
-              {children}
-            </main>
-            <Footer />
-            <FloatingCart />
-          </CartProvider>
+          <Navbar />
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+          <Footer />
+          <FloatingCart />
         </ThemeProvider>
       </body>
     </html>

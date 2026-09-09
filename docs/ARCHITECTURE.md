@@ -28,6 +28,7 @@ app/
   authors/page.tsx        Authors index (static)
   authors/[slug]/         Author detail (dynamic, server-fetched)
   search/page.tsx         Search results (dynamic, server-fetched)
+  cart/page.tsx           Shopping cart (static, client-side state)
   design-system/page.tsx  Internal reference page for design-token QA
 ```
 
@@ -70,10 +71,10 @@ The boundary is intentional: data crosses from server to client as serialisable 
 - **Hero:** slides are a small **typed static configuration** (not CMS/database-driven in B2) — see `lib/mock-data.ts` `MOCK_HERO_SLIDES`, consumed via the `HeroSlide` type.
 - The page is statically prerendered at build time (`○`); data is baked at build. `PLANNED:` ISR/revalidation and dynamic merchandising (B10).
 
-## State management (CURRENT — B3)
+## State management (CURRENT — B4)
 
 - **Theme:** `ThemeContext` — `useSyncExternalStore` over `localStorage` + `matchMedia("(prefers-color-scheme: dark)")`, with a pre-paint inline init script in the layout to avoid theme flash. Storage key: `bookie-theme`.
-- **Cart:** `CartContext` — client-side `count` + `addItem` + `lastAddedAt` (used to bounce the floating cart). No persistence (`PLANNED`: B4).
+- **Cart:** `lib/cart.ts` — `useSyncExternalStore` over `localStorage` (key `bookie:cart`). Stores an array of `CartItem` objects with `bookId`, `slug`, `title`, `author`, `coverImage`, `price`, `quantity`. Max 99 per item. Actions: `addItem`, `updateQuantity`, `removeItem`, `clearCart`. Derived: `totalItems`, `subtotal`. SSR-safe (returns empty during server render). Used by: `FloatingCart`, `Navbar` (badge count), `BookCard` (Add to Cart), `BookDetailClient` (Add to Cart), `NewReleases` (Add to Cart), `/cart` page. **Replaced** old `CartContext` (which had no persistence and no item data).
 - **Recently viewed:** `lib/recently-viewed.ts` — client-side localStorage list of book ids (key `bookie:recently-viewed`, max 12, deduped, most-recent-first). Recorded on book detail page visit via `recordRecentlyViewed()`. Home section reads via `useSyncExternalStore`.
 - **Wishlist:** `lib/wishlist.ts` — client-side localStorage set of book ids (key `bookie:wishlist`, max 100). Toggle via `toggleWishlist()`. `WishlistButton` component uses `useSyncExternalStore` for SSR-safe reads. Active on book cards and book detail pages.
 

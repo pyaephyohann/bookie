@@ -3,7 +3,8 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, Eye, Loader2, Plus, Star } from "lucide-react";
 import { useState } from "react";
-import { useCart } from "@/components/cart/CartContext";
+import { useCartStore } from "@/lib/cart";
+import Link from "next/link";
 import { BookCover } from "@/components/books/BookCover";
 import { discountPercent, formatPrice } from "@/lib/mock-data";
 import { fadeUp } from "@/lib/motion";
@@ -19,7 +20,7 @@ type AddState = "idle" | "loading" | "added";
 
 export function BookCard({ book, animate = "visible" }: BookCardProps) {
   const reduce = useReducedMotion();
-  const { addItem } = useCart();
+  const { addItem } = useCartStore();
   const [addState, setAddState] = useState<AddState>("idle");
 
   const discount = book.compareAtPrice
@@ -30,7 +31,14 @@ export function BookCard({ book, animate = "visible" }: BookCardProps) {
     if (addState !== "idle") return;
     setAddState("loading");
     window.setTimeout(() => {
-      addItem();
+      addItem({
+        bookId: book.id,
+        slug: book.slug,
+        title: book.title,
+        author: book.author,
+        coverImage: book.coverImage,
+        price: book.price,
+      });
       setAddState("added");
       window.setTimeout(() => setAddState("idle"), 1400);
     }, 450);
@@ -90,14 +98,15 @@ export function BookCard({ book, animate = "visible" }: BookCardProps) {
             )}
             {addState === "added" ? "Added" : "Add to Cart"}
           </motion.button>
-          <motion.a
-            href={`/books/${book.slug}`}
-            whileTap={{ scale: 0.95 }}
-            aria-label={`View ${book.title}`}
-            className="flex size-9 items-center justify-center rounded-control border border-border-strong bg-surface text-text shadow-sm transition-colors hover:bg-surface-muted"
-          >
-            <Eye className="size-4" aria-hidden />
-          </motion.a>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <Link
+              href={`/books/${book.slug}`}
+              aria-label={`View ${book.title}`}
+              className="flex size-9 items-center justify-center rounded-control border border-border-strong bg-surface text-text shadow-sm transition-colors hover:bg-surface-muted"
+            >
+              <Eye className="size-4" aria-hidden />
+            </Link>
+          </motion.div>
         </div>
       </div>
 
@@ -107,9 +116,9 @@ export function BookCard({ book, animate = "visible" }: BookCardProps) {
           {book.category}
         </span>
         <h3 className="text-h4 leading-snug">
-          <a href={`/books/${book.slug}`} className="transition-colors hover:text-text-secondary">
+          <Link href={`/books/${book.slug}`} className="transition-colors hover:text-text-secondary">
             {book.title}
-          </a>
+          </Link>
         </h3>
         <p className="text-body-sm text-text-muted">{book.author}</p>
 

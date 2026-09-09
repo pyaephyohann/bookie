@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Check, ChevronLeft, Clock, Eye, Loader2, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useCart } from "@/components/cart/CartContext";
+import { useCartStore } from "@/lib/cart";
 import { BookCover } from "@/components/books/BookCover";
 import { WishlistButton } from "@/components/books/WishlistButton";
 import { formatPrice } from "@/lib/mock-data";
@@ -16,7 +16,7 @@ type CartState = "idle" | "loading" | "added";
 
 export function BookDetailClient({ book }: { book: BookDetail }) {
   const reduce = useReducedMotion() ?? false;
-  const { addItem } = useCart();
+  const { addItem } = useCartStore();
   const [cartState, setCartState] = useState<CartState>("idle");
 
   // Record this book as recently viewed
@@ -28,7 +28,14 @@ export function BookDetailClient({ book }: { book: BookDetail }) {
     if (cartState !== "idle") return;
     setCartState("loading");
     window.setTimeout(() => {
-      addItem();
+      addItem({
+        bookId: book.id,
+        slug: book.slug,
+        title: book.title,
+        author: book.authors[0]?.name ?? "Unknown",
+        coverImage: book.coverImage,
+        price: book.price,
+      });
       setCartState("added");
       window.setTimeout(() => setCartState("idle"), 1400);
     }, 450);

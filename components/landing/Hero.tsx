@@ -3,13 +3,17 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, PackageSearch, Sparkles } from "lucide-react";
 import { BookCover } from "@/components/books/BookCover";
-import { MOCK_BOOKS } from "@/lib/mock-data";
 import { EASE_OUT, fadeUp, stagger } from "@/lib/motion";
 import { HeroSlider } from "./HeroSlider";
+import type { BookSummary, HeroSlide } from "@/lib/data";
 
-const FLOATING_BOOKS = [MOCK_BOOKS[1], MOCK_BOOKS[6], MOCK_BOOKS[8]];
-
-export function Hero() {
+export function Hero({
+  floatingBooks,
+  slides,
+}: {
+  floatingBooks: BookSummary[];
+  slides: HeroSlide[];
+}) {
   const reduce = useReducedMotion() ?? false;
 
   return (
@@ -100,22 +104,28 @@ export function Hero() {
 
           {/* Visual: floating books + slider below */}
           <div className="relative">
-            <div className="pointer-events-none absolute -top-10 right-2 z-10 hidden xl:block">
-              <FloatingBook book={FLOATING_BOOKS[0]} className="size-24 -rotate-12" delay={0.9} />
-            </div>
-            <div className="pointer-events-none absolute -left-8 bottom-24 z-10 hidden xl:block">
-              <FloatingBook book={FLOATING_BOOKS[1]} className="size-20 rotate-6" delay={1.2} />
-            </div>
-            <div className="pointer-events-none absolute -top-16 left-10 z-10 hidden lg:block">
-              <FloatingBook book={FLOATING_BOOKS[2]} className="size-16 rotate-3" delay={1.5} />
-            </div>
+            {floatingBooks[0] && (
+              <div className="pointer-events-none absolute -top-10 right-2 z-10 hidden xl:block">
+                <FloatingBook book={floatingBooks[0]} className="size-24 -rotate-12" delay={0.9} />
+              </div>
+            )}
+            {floatingBooks[1] && (
+              <div className="pointer-events-none absolute -left-8 bottom-24 z-10 hidden xl:block">
+                <FloatingBook book={floatingBooks[1]} className="size-20 rotate-6" delay={1.2} />
+              </div>
+            )}
+            {floatingBooks[2] && (
+              <div className="pointer-events-none absolute -top-16 left-10 z-10 hidden lg:block">
+                <FloatingBook book={floatingBooks[2]} className="size-16 rotate-3" delay={1.5} />
+              </div>
+            )}
 
             <motion.div
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 32, rotate: 1.5 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, rotate: 0 }}
               transition={{ delay: 0.25, duration: 0.7, ease: EASE_OUT }}
             >
-              <HeroSlider />
+              <HeroSlider slides={slides} />
             </motion.div>
           </div>
         </div>
@@ -129,7 +139,7 @@ function FloatingBook({
   className,
   delay,
 }: {
-  book: (typeof MOCK_BOOKS)[number];
+  book: BookSummary;
   className: string;
   delay: number;
 }) {
@@ -145,7 +155,7 @@ function FloatingBook({
         animate={reduce ? undefined : { y: [0, -10, 0], rotate: [0, 2, 0] }}
         transition={{ duration: 6 + delay, repeat: Infinity, ease: "easeInOut" }}
       >
-        <BookCover title={book.title} author={book.author} gradient={book.cover} className={className} />
+        <BookCover title={book.title} author={book.author} gradient={book.gradient} src={book.coverImage} className={className} />
       </motion.div>
     </motion.div>
   );

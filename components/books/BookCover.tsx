@@ -1,20 +1,41 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 /**
- * Placeholder cover art — a deterministic CSS/SVG composition per book.
- * Replace with real <Image> covers when the catalogue is connected.
+ * Book cover with two modes:
+ * - `src` present: real cover image (next/image, object-cover).
+ * - otherwise: placeholder art — a deterministic CSS/SVG composition per book.
  */
 
 interface BookCoverProps {
   title: string;
   author: string;
   gradient: [string, string];
+  /** Real cover image URL — when present, renders the image instead of placeholder art. */
+  src?: string | null;
+  alt?: string;
   className?: string;
 }
 
-export function BookCover({ title, author, gradient, className = "" }: BookCoverProps) {
+export function BookCover({ title, author, gradient, src, alt, className = "" }: BookCoverProps) {
+  if (src) {
+    return (
+      <div
+        className={`relative flex aspect-2/3 w-full overflow-hidden rounded-md bg-surface-muted ${className}`}
+      >
+        <Image
+          src={src}
+          alt={alt ?? `Cover of ${title}`}
+          fill
+          sizes="(max-width: 640px) 50vw, 30vw"
+          className="object-cover"
+        />
+      </div>
+    );
+  }
+
   const seed = title.length + title.charCodeAt(0);
   const bands = 3 + (seed % 3);
 

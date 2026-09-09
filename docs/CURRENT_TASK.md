@@ -1,50 +1,45 @@
-# Current Task — B1: User App Foundation
+# Current Task — B2: Home & Discovery
 
 ## Status
 
 **COMPLETED**
 
-B1 — User App Foundation is finished and locked. All B1 scope items are implemented and verified (see `docs/` for the full record).
+B2 — Home & Discovery is finished and locked. The Home page is now a real, data-driven discovery experience (Prisma-backed with a documented mock fallback for the empty development database).
 
-**B2 — Home & Discovery has NOT started.** It is the next task; do not begin it until instructed.
+**B3 — Books has NOT started.** It is the next task; do not begin it until instructed.
 
 (Update this file only when the current task changes.)
 
 ## Objective
 
-Establish the reusable Bookie user-facing foundation: navigation, branding, theming, responsive layout, and the reusable UI/animation layer that every future milestone (B2–B10) builds on.
+Turn the B1 landing/foundation into a real bookstore discovery Home page: hero, browse categories, trending, best sellers, new releases, promotions, featured authors, recommended, and recently viewed — all following the existing Bookie design system and animation architecture.
 
-## Scope
+## Scope (completed)
 
-- Navbar (Home, Categories, Authors, Search, Track Order, Cart)
-- Bookie logo (image + Caveat wordmark)
-- logo image (`public/logo.png`)
-- fonts (Scoutie Sans UI + Caveat decorative)
-- theme (Light / Dark / System)
-- responsive layout foundation
-- navigation structure (desktop + mobile)
-- Categories menu foundation (hover mega-menu, clickable)
-- Search shortcut foundation (⌘K / Ctrl+K palette)
-- reusable UI foundation (`components/ui/*`)
-- animation foundation (Framer Motion helpers)
-- documentation system (`docs/`)
+- Server-side Home data layer (`lib/data.ts`) with shared UI types and Prisma queries
+- Mock-catalogue fallback when the database is empty/unavailable (explicit, documented)
+- Hero + 5s auto-slider (typed static config)
+- Browse Categories section (clickable cards with counts)
+- Trending / Best Sellers / New Releases / Promotion Items / Featured Authors / Recommended sections
+- Recently Viewed (localStorage, `useSyncExternalStore`, SSR-safe)
+- Reusable `BookCard` / `BookCover` (real covers + placeholder fallback), `EmptyState`
+- Section order per the B2 spec; responsive shelves/grids; light/dark/system verified
+- Documentation updated (PROJECT, ARCHITECTURE, DESIGN, DATABASE, DEVELOPMENT, ROADMAP)
 
-## Not in scope
+## Not in scope (unchanged)
 
-- checkout
-- payment
-- order creation
-- BookPass generation
-- order tracking
-- admin / POS
-- inventory management
-- online reading
-- payment slip upload
-- complex search backend
+Checkout, payment, BookPass generation, order creation, order tracking, online reading, admin/POS, inventory UI, wishlist, cart page, advanced search backend, auth/accounts, AI recommendations, B10 polish. Also: no book-detail / category / author pages (B3), no schema changes.
+
+## Known remaining issues (B2)
+
+- The development database is empty, so the Home page currently renders the **mock fallback**; the Prisma query path is implemented and build-verified but awaits real seeded data to be observed end-to-end.
+- Recently Viewed displays stored ids only — nothing records views yet (B3 detail pages will call `recordRecentlyViewed`).
+- Hero slides remain a typed static config (not CMS-driven).
+- Home is statically prerendered at build time; ISR/revalidation is B10 polish.
 
 ## Definition of done
 
-- Lint, typecheck, and production build pass.
-- Navbar + logo + theme + search shortcut + categories menu work on desktop and mobile.
-- `public/logo.png` renders; brand displays as "Bookie" in Caveat.
-- Clickable elements behave as clickable (pointer cursor, hover/focus states).
+- lint, typecheck, and production build pass.
+- All discovery sections render on the Home page in the B2 order.
+- Empty/fallback states are clean; no hydration errors; no console errors.
+- Docs reflect the actual B2 implementation.

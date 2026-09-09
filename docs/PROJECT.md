@@ -53,21 +53,27 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 
 | Feature | Status | Notes |
 |---|---|---|
-| Home / landing page | ✅ | Hero + slider, trending, best sellers, new releases, promotions, categories, authors, read-online, BookPass, final CTA |
+| Home page | ✅ | Hero + slider, categories, trending, best sellers, new releases, promotions, featured authors, recommended, recently viewed, read-online, BookPass, final CTA — all discovery sections data-backed (Prisma with mock fallback) |
+| Hero + auto slider | ✅ | 5s autoplay, prev/next, indicators, pause; slides are a typed static config (not CMS-driven) |
+| Browse Categories (Home) | ✅ | Clickable category cards w/ book counts (Prisma Category or mock) |
+| Trending | ✅ | FeaturedBook section TRENDING; falls back to newest books; mock fallback when DB empty |
+| Best Sellers | ✅ | FeaturedBook section BEST_SELLER; documented placeholder ranking until order data exists |
+| New Releases | ✅ | Sorted by `publishedAt` (nulls last); mock fallback uses the mock's NEW flags |
+| Promotion Items | ✅ | Active Promotions (PERCENTAGE/FIXED_AMOUNT) applied to linked books; mock fallback uses compareAtPrice deals |
+| Featured Authors | ✅ | Prisma Authors with book counts + photo/gradient avatars; mock fallback |
+| Recommended For You | ✅ | Lightweight deterministic pick (featured RECOMMENDED or curated fallback) — NOT AI/personalised |
+| Recently Viewed | ✅ | Client-side localStorage (12 max, deduped, SSR-safe); populated by future B3 detail views |
 | Navbar | ✅ | Logo, Home, Authors, Categories menu, Search, Track Order, Cart, theme toggle, mobile menu |
-| Categories menu | ✅ | Desktop hover mega-menu + mobile accordion (mock data) |
+| Categories menu (navbar) | ✅ | Desktop hover mega-menu + mobile accordion (mock data for now) |
 | Search UI + shortcut | ✅ | ⌘K / Ctrl+K command palette with mock results; no backend search |
 | Theme (Light / Dark / System) | ✅ | localStorage + system preference, no-flash init |
 | Cart state | ✅ | Client-side count + add-to-cart feedback; no persistence or checkout |
 | Floating cart | ✅ | Bottom-left shortcut with item count |
-| Category pages | 🧭 | B2 — Home & Discovery |
+| Category pages | 🧭 | B3 — Books |
 | Book details page | 🧭 | B3 — Books |
-| Authors pages | 🧭 | B2/B3 |
-| Search backend | 🧭 | B2/B3 |
+| Authors pages | 🧭 | B3 — Books |
+| Search backend | 🧭 | B3/B10 |
 | Wishlist | 🧭 | Planned |
-| Recently viewed | 🧭 | Planned |
-| Recommendations / Recommended | 🧭 | Planned (FeaturedSection enum already includes RECOMMENDED) |
-| Hero slider (dynamic data) | 🧭 | Currently mock slides |
 | Cart page | 🧭 | B4 — Cart |
 | Checkout + customer information | 🧭 | B5 — Checkout |
 | Payment (KPay / AYA Pay) | 🧭 | B6 — Payment |
@@ -76,3 +82,5 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Order tracking page | 🧭 | B8 — Order Tracking |
 | Online reading (reader) | 🧭 | B9 — Online Reading |
 | Admin / POS / inventory | 🧭 | Not in the user-app roadmap |
+
+**Data strategy (B2):** the Home page prefers real Prisma data. Every discovery section has a genuine query path against the existing schema. When the database has no PUBLISHED books (empty dev DB, unreachable, or broken), the whole page falls back to the mock catalogue so the storefront is never unusable. This is an explicit, documented fallback — not fake database records.

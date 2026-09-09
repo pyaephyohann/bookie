@@ -1,14 +1,16 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Tag } from "lucide-react";
+import { ArrowRight, Percent, Tag } from "lucide-react";
 import { BookCover } from "@/components/books/BookCover";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
-import { discountPercent, formatPrice, MOCK_BOOKS } from "@/lib/mock-data";
+import { discountPercent, formatPrice } from "@/lib/mock-data";
+import type { BookSummary } from "@/lib/data";
 
-export function Promotions() {
+export function Promotions({ books }: { books: BookSummary[] }) {
   const reduce = useReducedMotion() ?? false;
-  const deals = MOCK_BOOKS.filter((b) => b.compareAtPrice);
+  const deals = books.filter((book) => book.compareAtPrice !== null);
 
   return (
     <section className="relative overflow-hidden border-y border-border bg-ink py-16 text-text-inverse dark:bg-surface" aria-labelledby="promotions-heading">
@@ -48,6 +50,14 @@ export function Promotions() {
           </p>
         </div>
 
+        {deals.length === 0 ? (
+          <EmptyState
+            title="No active promotions right now"
+            description="When the next deal drops, it'll show up here first."
+            icon={Percent}
+            className="border-ink/10 bg-background dark:border-border dark:bg-surface-elevated"
+          />
+        ) : (
         <motion.div
           variants={stagger(reduce, 0.08)}
           initial="hidden"
@@ -67,7 +77,13 @@ export function Promotions() {
                 className="group flex flex-col gap-4 rounded-card border border-ink/10 bg-background p-4 shadow-sm transition-shadow hover:shadow-lg dark:border-border dark:bg-surface-elevated"
               >
                 <div className="relative">
-                  <BookCover title={book.title} author={book.author} gradient={book.cover} />
+                  <BookCover
+                    title={book.title}
+                    author={book.author}
+                    gradient={book.gradient}
+                    src={book.coverImage}
+                    alt={`Cover of ${book.title}`}
+                  />
                   <span className="absolute -right-1.5 -top-1.5 flex size-11 rotate-6 items-center justify-center rounded-full bg-brand text-body-sm font-extrabold text-brand-on shadow-md transition-transform duration-200 group-hover:rotate-0">
                     −{discount}%
                   </span>
@@ -93,6 +109,7 @@ export function Promotions() {
             );
           })}
         </motion.div>
+        )}
       </div>
     </section>
   );

@@ -4,11 +4,9 @@ import { motion, useReducedMotion } from "framer-motion";
 import { BookOpen, Bookmark, Cloud, Moon, Sun } from "lucide-react";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
 import { BookCover } from "@/components/books/BookCover";
-import { MOCK_BOOKS } from "@/lib/mock-data";
+import type { BookSummary } from "@/lib/data";
 
-const book = MOCK_BOOKS[0]; // The Silent Library
-
-export function ReadingFeature() {
+export function ReadingFeature({ book }: { book: BookSummary | null }) {
   const reduce = useReducedMotion() ?? false;
 
   return (
@@ -113,16 +111,18 @@ export function ReadingFeature() {
           </motion.div>
 
           {/* Book cover peeking behind the reader */}
-          <motion.div
-            aria-hidden
-            initial={reduce ? false : { x: -30, opacity: 0 }}
-            whileInView={{ x: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="absolute -left-6 bottom-10 hidden w-24 -rotate-6 sm:block lg:-left-12 lg:w-28"
-          >
-            <BookCover title={book.title} author={book.author} gradient={book.cover} />
-          </motion.div>
+          {book && (
+            <motion.div
+              aria-hidden
+              initial={reduce ? false : { x: -30, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="absolute -left-6 bottom-10 hidden w-24 -rotate-6 sm:block lg:-left-12 lg:w-28"
+            >
+              <BookCover title={book.title} author={book.author} gradient={book.gradient} src={book.coverImage} />
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </section>

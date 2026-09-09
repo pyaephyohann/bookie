@@ -65,3 +65,38 @@ The application must work well on desktop, tablet, and mobile — never desktop-
 ## Status colors (semantic)
 
 `success`, `pending`, `warning`, `error`, `info`, `neutral` — each with `-muted` (badge backgrounds, AA-checked) and `-strong` variants; badge classes `.status-*` in `globals.css`. Order statuses map: PLACED→info, CONFIRMED→success, REJECTED→error, PREPARING→pending, SHIPPED→info, DELIVERED→success, CANCELLED→neutral. Payment: PENDING→pending, VERIFIED→success, REJECTED→error. Map statuses in typed component code (e.g., `components/ui/badge.tsx` against the generated Prisma enums) rather than hard-coding colors in badges.
+
+## Discovery components (B2)
+
+Reusable patterns added for Home & Discovery. All follow the token system above — no raw values in JSX.
+
+### Book covers
+
+- `BookCover` renders a **real image** (next/image, `object-cover`, aspect 2:3) when a cover URL exists, otherwise deterministic **placeholder art** (gradient + geometry + title). `alt` defaults to "Cover of {title}".
+- Book images sit in `aspect-2/3` containers; never break layout when missing.
+
+### Book cards
+
+- `BookCard` is the reusable card: cover, category, title (link), author, price, optional compare-at price with −% pill, optional rating, hover zoom + quick actions (Add to Cart / View).
+- Fields that may be absent (rating, reviews, cover image) are hidden, not stubbed.
+- Used in a fixed-width snap shelf (Trending, Recently Viewed) or a responsive grid (Recommended).
+
+### Discovery sections
+
+- `SectionHeading` pattern: eyebrow label + H2 + description + optional Caveat `funNote` + optional actions (scroll buttons / "view all").
+- Horizontal shelves: `scrollbar-none -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4` — mobile scrolls, desktop uses the same shelf. Grid sections switch `grid-cols-2` → `sm:grid-cols-3` → `lg:grid-cols-6`.
+- **Empty states:** every shelf has a friendly `EmptyState` (dashed border card, icon, title, description, optional action) instead of a broken/blank area.
+
+### Category & author cards
+
+- Category tiles: editorial asymmetric grid (Fiction spans 2×2), count label, hover lift + arrow.
+- Author cards: avatar (photo via next/image `fill`, otherwise gradient initials), name, book-count pill, description, hover lift.
+
+### Hero
+
+- Editorial split hero: headline + CTAs + floating covers; the showcase slider autoplays every **5s**, pauses on hover/focus, has prev/next + pagination indicators, and collapses to a stacked single-panel layout on mobile.
+- Slide tint backgrounds are soft pastels that work in both themes; the yellow brand is used for badges/accents only.
+
+### Recently viewed
+
+- Horizontal shelf identical to Trending; reads from localStorage via `useSyncExternalStore`. Shows a calm empty state ("Nothing here yet") when empty — no flicker, no hydration mismatch.

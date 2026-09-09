@@ -1,15 +1,16 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Trophy } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
-import { formatPrice, MOCK_BOOKS } from "@/lib/mock-data";
+import { formatPrice } from "@/lib/mock-data";
+import type { BookSummary } from "@/lib/data";
 
-export function BestSellers() {
+export function BestSellers({ books }: { books: BookSummary[] }) {
   const reduce = useReducedMotion() ?? false;
-  const ranked = MOCK_BOOKS.filter((b) => b.bestSellerRank)
-    .sort((a, b) => (a.bestSellerRank ?? 0) - (b.bestSellerRank ?? 0));
+  const ranked = books;
 
   return (
     <section className="border-y border-border bg-surface py-16" aria-labelledby="bestsellers-heading">
@@ -17,7 +18,7 @@ export function BestSellers() {
         <SectionHeading
           eyebrow="Best sellers"
           title="The books everyone owns"
-          description="Ranked by orders this month — the titles readers keep gifting."
+          description="The titles readers keep coming back to — updated as orders roll in."
           action={
             <a
               href="#/best-sellers"
@@ -30,6 +31,13 @@ export function BestSellers() {
           <span id="bestsellers-heading" className="sr-only">Best sellers</span>
         </SectionHeading>
 
+        {ranked.length === 0 ? (
+          <EmptyState
+            title="Best sellers coming soon"
+            description="Once orders start rolling in, the top titles will rank here."
+            icon={Trophy}
+          />
+        ) : (
         <motion.ol
           variants={stagger(reduce, 0.09)}
           initial="hidden"
@@ -51,7 +59,7 @@ export function BestSellers() {
                     i < 3 ? "text-7xl sm:text-8xl" : "text-5xl"
                   }`}
                 >
-                  {String(book.bestSellerRank).padStart(2, "0")}
+                  {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="text-caption font-semibold uppercase tracking-wide text-text-muted">
@@ -61,15 +69,19 @@ export function BestSellers() {
                     {book.title}
                   </span>
                   <span className="mt-0.5 block text-body-sm text-text-muted">{book.author}</span>
-                  <span className="mt-2 block text-caption text-text-muted">
-                    ★ {book.rating.toFixed(1)} · {book.reviews} reviews
-                  </span>
+                  {book.rating !== null && (
+                    <span className="mt-2 block text-caption text-text-muted">
+                      ★ {book.rating.toFixed(1)}
+                      {book.reviews !== null ? ` · ${book.reviews} reviews` : ""}
+                    </span>
+                  )}
                 </span>
                 <span className="shrink-0 text-h4 font-bold">{formatPrice(book.price)}</span>
               </a>
             </motion.li>
           ))}
         </motion.ol>
+        )}
       </div>
     </section>
   );

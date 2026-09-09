@@ -62,3 +62,15 @@
 
 - There is **no** separate `Customer`, `Delivery`, `Publisher`, or `Notification` model — customer data lives on `Order` (guest checkout), delivery is the `shippingAddress` field, publisher is a `Book` field, and notifications are handled outside the DB (email/phone).
 - `PLANNED:` the first migration (`prisma migrate dev --name init`) and any app-level Prisma queries (B2+). The schema is migration-ready.
+
+## B2 usage (CURRENT — read-only, no schema change)
+
+B2 added the first application queries, all **read-only** and server-side (`lib/data.ts`):
+
+- `Book` filtered to `status = PUBLISHED`, with the first `Category` and `Author` joined; money fields converted from `Decimal` to JS numbers for display.
+- `Category` / `Author` with `_count.books` for catalogue counts.
+- `FeaturedBook` grouped by `FeaturedSection` (TRENDING / BEST_SELLER / RECOMMENDED) for merchandised shelves.
+- `Promotion` filtered to `isActive` + active date range, linked books taken, and the promotion applied as a price adjustment (PERCENTAGE / FIXED_AMOUNT) before display.
+- `New Releases` ordered by `publishedAt` (nulls last).
+
+No writes, no new tables, no schema changes. `FeaturedBook` is the intended merchandising mechanism; shelves fall back to deterministic catalogue picks when nothing is merchandised. The database is currently empty in development, so the Home page uses the documented mock fallback until real data is seeded.

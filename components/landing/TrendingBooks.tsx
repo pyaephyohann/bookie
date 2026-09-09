@@ -3,12 +3,12 @@
 import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { useRef } from "react";
 import { BookCard } from "@/components/books/BookCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { MOCK_BOOKS } from "@/lib/mock-data";
+import type { BookSummary } from "@/lib/data";
 
-export function TrendingBooks() {
+export function TrendingBooks({ books }: { books: BookSummary[] }) {
   const scroller = useRef<HTMLDivElement>(null);
-  const books = MOCK_BOOKS.slice(0, 8);
 
   const scrollBy = (dir: 1 | -1) => {
     scroller.current?.scrollBy({ left: dir * 280, behavior: "smooth" });
@@ -35,18 +35,26 @@ export function TrendingBooks() {
         <span id="trending-heading" className="sr-only">Trending now</span>
       </SectionHeading>
 
-      <div
-        ref={scroller}
-        className="scrollbar-none -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0"
-        role="list"
-        aria-label="Trending books"
-      >
-        {books.map((book) => (
-          <div key={book.id} role="listitem" className="w-56 shrink-0 snap-start sm:w-60">
-            <BookCard book={book} />
-          </div>
-        ))}
-      </div>
+      {books.length === 0 ? (
+        <EmptyState
+          title="The shelves are warming up"
+          description="Trending titles will appear here as books are added."
+          icon={Flame}
+        />
+      ) : (
+        <div
+          ref={scroller}
+          className="scrollbar-none -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0"
+          role="list"
+          aria-label="Trending books"
+        >
+          {books.map((book) => (
+            <div key={book.id} role="listitem" className="w-56 shrink-0 snap-start sm:w-60">
+              <BookCard book={book} />
+            </div>
+          ))}
+        </div>
+      )}
 
       <p className="text-fun mt-2 flex items-center gap-2 text-xl text-text-muted">
         <Flame className="size-4 text-brand" aria-hidden />

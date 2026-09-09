@@ -4,7 +4,8 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Pause, Play, Star } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookCover } from "@/components/books/BookCover";
-import { formatPrice, MOCK_HERO_SLIDES } from "@/lib/mock-data";
+import { formatPrice } from "@/lib/mock-data";
+import type { HeroSlide } from "@/lib/data";
 
 const AUTOPLAY_MS = 5000;
 
@@ -12,7 +13,7 @@ const AUTOPLAY_MS = 5000;
  * Editorial hero showcase slider.
  * Auto-advances every 5s, pauses on hover/focus, and respects reduced motion.
  */
-export function HeroSlider() {
+export function HeroSlider({ slides }: { slides: HeroSlide[] }) {
   const reduce = useReducedMotion() ?? false;
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -20,22 +21,22 @@ export function HeroSlider() {
 
   const go = useCallback(
     (next: number) => {
-      setIndex((next + MOCK_HERO_SLIDES.length) % MOCK_HERO_SLIDES.length);
+      setIndex((next + slides.length) % slides.length);
     },
-    [],
+    [slides.length],
   );
 
   useEffect(() => {
     if (paused || reduce) return;
     timer.current = window.setInterval(() => {
-      setIndex((i) => (i + 1) % MOCK_HERO_SLIDES.length);
+      setIndex((i) => (i + 1) % slides.length);
     }, AUTOPLAY_MS);
     return () => {
       if (timer.current) window.clearInterval(timer.current);
     };
-  }, [paused, reduce]);
+  }, [paused, reduce, slides.length]);
 
-  const slide = MOCK_HERO_SLIDES[index];
+  const slide = slides[index];
   const direction = 1; // slides always advance forward; kept simple and calm
 
   return (
@@ -120,7 +121,7 @@ export function HeroSlider() {
 
               {/* Pagination dots */}
               <div className="ml-2 flex items-center gap-1.5" role="tablist" aria-label="Slides">
-                {MOCK_HERO_SLIDES.map((s, i) => (
+                {slides.map((s, i) => (
                   <button
                     key={s.id}
                     type="button"

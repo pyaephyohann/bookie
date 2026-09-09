@@ -1,10 +1,11 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, LayoutGrid } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
-import { MOCK_CATEGORIES } from "@/lib/mock-data";
+import type { CategorySummary } from "@/lib/data";
 
 /** Editorial magazine-style tiles: intentional asymmetry via span rules. */
 const TILE_STYLES: Record<string, string> = {
@@ -15,9 +16,9 @@ const TILE_STYLES: Record<string, string> = {
   "Children's Books": "md:col-span-2",
 };
 
-export function CategoryShowcase() {
+export function CategoryShowcase({ categories }: { categories: CategorySummary[] }) {
   const reduce = useReducedMotion() ?? false;
-  const featured = MOCK_CATEGORIES.slice(0, 6);
+  const featured = categories.slice(0, 6);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8" aria-labelledby="categories-heading">
@@ -31,13 +32,20 @@ export function CategoryShowcase() {
             href="#/categories"
             className="text-body-sm font-semibold text-text underline-offset-4 hover:underline"
           >
-            All {MOCK_CATEGORIES.length} categories →
+            All {categories.length} categories →
           </a>
         }
       >
         <span id="categories-heading" className="sr-only">Explore by category</span>
       </SectionHeading>
 
+      {featured.length === 0 ? (
+        <EmptyState
+          title="Categories are taking shape"
+          description="Once the catalogue is organised, you'll be able to browse it here."
+          icon={LayoutGrid}
+        />
+      ) : (
       <motion.div
         variants={stagger(reduce, 0.07)}
         initial="hidden"
@@ -51,7 +59,7 @@ export function CategoryShowcase() {
             variants={fadeUp(reduce)}
             whileHover={reduce ? undefined : { y: -4 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            href={`#/categories/${category.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+            href={`#/categories/${category.slug}`}
             className={`group relative flex flex-col justify-end overflow-hidden rounded-card border border-border bg-surface p-5 shadow-xs transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md ${TILE_STYLES[category.name] ?? ""}`}
           >
             {/* Decorative arc */}
@@ -76,6 +84,7 @@ export function CategoryShowcase() {
           </motion.a>
         ))}
       </motion.div>
+      )}
     </section>
   );
 }

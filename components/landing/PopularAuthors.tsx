@@ -1,12 +1,14 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Users } from "lucide-react";
+import Image from "next/image";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
-import { MOCK_AUTHORS } from "@/lib/mock-data";
+import type { AuthorSummary } from "@/lib/data";
 
-export function PopularAuthors() {
+export function PopularAuthors({ authors }: { authors: AuthorSummary[] }) {
   const reduce = useReducedMotion() ?? false;
 
   return (
@@ -29,6 +31,13 @@ export function PopularAuthors() {
           <span id="authors-heading" className="sr-only">Popular authors</span>
         </SectionHeading>
 
+        {authors.length === 0 ? (
+          <EmptyState
+            title="Author shelves are being built"
+            description="Featured authors will appear here as the catalogue grows."
+            icon={Users}
+          />
+        ) : (
         <motion.ul
           variants={stagger(reduce, 0.08)}
           initial="hidden"
@@ -37,7 +46,7 @@ export function PopularAuthors() {
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
           role="list"
         >
-          {MOCK_AUTHORS.map((author) => (
+          {authors.map((author) => (
             <motion.li key={author.slug} variants={fadeUp(reduce)} role="listitem">
               <motion.a
                 href={`#/authors/${author.slug}`}
@@ -45,15 +54,27 @@ export function PopularAuthors() {
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="group flex h-full items-center gap-4 rounded-card border border-border bg-background p-4 shadow-xs transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md"
               >
-                <motion.span
-                  whileHover={reduce ? undefined : { scale: 1.06, rotate: -2 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative flex size-14 shrink-0 items-center justify-center rounded-full text-h4 font-extrabold text-white shadow-sm"
-                  style={{ backgroundImage: `linear-gradient(140deg, ${author.cover[0]}, ${author.cover[1]})` }}
-                  aria-hidden
-                >
-                  {author.name.split(" ").map((w) => w[0]).join("")}
-                </motion.span>
+                {author.photoUrl ? (
+                  <span className="relative size-14 shrink-0 overflow-hidden rounded-full border border-border shadow-sm">
+                    <Image
+                      src={author.photoUrl}
+                      alt={`Portrait of ${author.name}`}
+                      fill
+                      sizes="56px"
+                      className="object-cover"
+                    />
+                  </span>
+                ) : (
+                  <motion.span
+                    whileHover={reduce ? undefined : { scale: 1.06, rotate: -2 }}
+                    transition={{ duration: 0.2 }}
+                    className="relative flex size-14 shrink-0 items-center justify-center rounded-full text-h4 font-extrabold text-white shadow-sm"
+                    style={{ backgroundImage: `linear-gradient(140deg, ${author.gradient[0]}, ${author.gradient[1]})` }}
+                    aria-hidden
+                  >
+                    {author.name.split(" ").map((w) => w[0]).join("")}
+                  </motion.span>
+                )}
 
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
@@ -75,6 +96,7 @@ export function PopularAuthors() {
             </motion.li>
           ))}
         </motion.ul>
+        )}
       </div>
     </section>
   );

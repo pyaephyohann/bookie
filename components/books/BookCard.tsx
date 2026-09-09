@@ -5,11 +5,12 @@ import { Check, Eye, Loader2, Plus, Star } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/components/cart/CartContext";
 import { BookCover } from "@/components/books/BookCover";
-import { discountPercent, formatPrice, type MockBook } from "@/lib/mock-data";
+import { discountPercent, formatPrice } from "@/lib/mock-data";
 import { fadeUp } from "@/lib/motion";
+import type { BookSummary } from "@/lib/data";
 
 interface BookCardProps {
-  book: MockBook;
+  book: BookSummary;
   /** Initial animation state (used by parent stagger containers). */
   animate?: "hidden" | "visible";
 }
@@ -50,7 +51,13 @@ export function BookCard({ book, animate = "visible" }: BookCardProps) {
           whileHover={reduce ? undefined : { scale: 1.04 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
         >
-          <BookCover title={book.title} author={book.author} gradient={book.cover} />
+          <BookCover
+            title={book.title}
+            author={book.author}
+            gradient={book.gradient}
+            src={book.coverImage}
+            alt={`Cover of ${book.title}`}
+          />
         </motion.div>
 
         {book.badge && (
@@ -115,10 +122,12 @@ export function BookCard({ book, animate = "visible" }: BookCardProps) {
               </span>
             )}
           </div>
-          <span className="flex items-center gap-1 text-caption font-semibold text-text-secondary">
-            <Star className="size-3.5 fill-brand stroke-ink/40" aria-hidden />
-            {book.rating.toFixed(1)}
-          </span>
+          {book.rating !== null && (
+            <span className="flex items-center gap-1 text-caption font-semibold text-text-secondary">
+              <Star className="size-3.5 fill-brand stroke-ink/40" aria-hidden />
+              {book.rating.toFixed(1)}
+            </span>
+          )}
         </div>
       </div>
     </motion.article>

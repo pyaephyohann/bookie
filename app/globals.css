@@ -3,20 +3,108 @@
 
 /* ============================================================
    BOOKIE DESIGN TOKENS
-   Single source of truth for colors, typography, borders,
-   radius, shadows and status semantics.
-   Change values here — never scatter raw hex values in JSX.
+   Brand: #FFF449 yellow · #FAFAFA white · #000000 black
+   Themeable semantic tokens live in :root / .dark and are
+   mapped into Tailwind via `@theme inline` below.
    ============================================================ */
 
-@theme {
+/* ---------- Light theme (default) ---------- */
+:root {
+  color-scheme: light;
+
+  --bk-background: #fafafa;
+  --bk-surface: #ffffff;
+  --bk-surface-muted: #f4f4f5;
+  --bk-surface-elevated: #ffffff;
+
+  --bk-text: #000000;
+  --bk-text-secondary: #404040;
+  --bk-text-muted: #737373;
+  --bk-text-disabled: #a3a3a3;
+  --bk-text-inverse: #fafafa;
+
+  /* "Ink" = strongest-contrast brand black (becomes light in dark mode) */
+  --bk-ink: #000000;
+  --bk-ink-hover: #27272a;
+
+  --bk-border-subtle: #ebebeb;
+  --bk-border: #e4e4e7;
+  --bk-border-strong: #d4d4d8;
+  --bk-border-focus: #000000;
+
+  --bk-success: #15803d;
+  --bk-success-muted: #dcfce7;
+  --bk-success-strong: #166534;
+  --bk-pending: #b45309;
+  --bk-pending-muted: #fef3c7;
+  --bk-pending-strong: #92400e;
+  --bk-warning: #a16207;
+  --bk-warning-muted: #fef9c3;
+  --bk-warning-strong: #854d0e;
+  --bk-error: #dc2626;
+  --bk-error-muted: #fee2e2;
+  --bk-error-strong: #b91c1c;
+  --bk-info: #1d4ed8;
+  --bk-info-muted: #dbeafe;
+  --bk-info-strong: #1e40af;
+  --bk-neutral: #52525b;
+  --bk-neutral-muted: #f4f4f5;
+  --bk-neutral-strong: #3f3f46;
+
+  --bk-shadow-color: 0 0% 0%;
+}
+
+/* ---------- Dark theme (intentional, not inverted) ---------- */
+.dark {
+  color-scheme: dark;
+
+  --bk-background: #0c0c0d;
+  --bk-surface: #161617;
+  --bk-surface-muted: #1e1e20;
+  --bk-surface-elevated: #1a1a1c;
+
+  --bk-text: #fafafa;
+  --bk-text-secondary: #d4d4d5;
+  --bk-text-muted: #a1a1a6;
+  --bk-text-disabled: #636368;
+  --bk-text-inverse: #0c0c0d;
+
+  --bk-ink: #fafafa;
+  --bk-ink-hover: #e4e4e7;
+
+  --bk-border-subtle: #232326;
+  --bk-border: #2c2c30;
+  --bk-border-strong: #3a3a40;
+  --bk-border-focus: #fafafa;
+
+  --bk-success: #4ade80;
+  --bk-success-muted: #14321f;
+  --bk-success-strong: #86efac;
+  --bk-pending: #fbbf24;
+  --bk-pending-muted: #33270e;
+  --bk-pending-strong: #fcd34d;
+  --bk-warning: #facc15;
+  --bk-warning-muted: #33301a;
+  --bk-warning-strong: #fde047;
+  --bk-error: #f87171;
+  --bk-error-muted: #3b1414;
+  --bk-error-strong: #fca5a5;
+  --bk-info: #60a5fa;
+  --bk-info-muted: #14263f;
+  --bk-info-strong: #93c5fd;
+  --bk-neutral: #a1a1a6;
+  --bk-neutral-muted: #262628;
+  --bk-neutral-strong: #d4d4d5;
+
+  --bk-shadow-color: 0 0% 0%;
+}
+
+@theme inline {
   /* ---------- Typography ---------- */
-  /* Primary font: Scoutie Sans (self-hosted variable font, weights 200–800). */
   --font-sans: "Scoutie Sans Variable", "Scoutie Sans", ui-sans-serif, system-ui,
     sans-serif;
-  /* Decorative font: Caveat, loaded via next/font/google in app/layout.tsx. */
   --font-fun: var(--font-caveat), "Caveat", "Comic Sans MS", cursive;
 
-  /* Display sizes are fluid-friendly: stepped down on small screens below. */
   --text-display: 3rem;
   --text-display--line-height: 1.05;
   --text-display--letter-spacing: -0.03em;
@@ -27,84 +115,64 @@
   --text-display-sm--letter-spacing: -0.02em;
   --text-display-sm--font-weight: 800;
 
-  /* ---------- Brand colors ---------- */
-  --color-brand: #fff449; /* Bookie yellow — primary CTAs, highlights */
+  /* ---------- Semantic surfaces & text ---------- */
+  --color-background: var(--bk-background);
+  --color-surface: var(--bk-surface);
+  --color-surface-muted: var(--bk-surface-muted);
+  --color-surface-elevated: var(--bk-surface-elevated);
+
+  --color-text: var(--bk-text);
+  --color-text-secondary: var(--bk-text-secondary);
+  --color-text-muted: var(--bk-text-muted);
+  --color-text-disabled: var(--bk-text-disabled);
+  --color-text-inverse: var(--bk-text-inverse);
+
+  --color-ink: var(--bk-ink);
+  --color-ink-hover: var(--bk-ink-hover);
+
+  /* ---------- Brand (constant in both themes) ---------- */
+  --color-brand: #fff449;
   --color-brand-hover: #f5ea00;
   --color-brand-active: #ebdf00;
-  --color-brand-muted: #fffbcc; /* subtle yellow tint for backgrounds */
-
-  /* ---------- Ink (black scale) ---------- */
-  --color-ink: #000000; /* Bookie black */
-  --color-ink-soft: #404040;
-  --color-ink-muted: #737373;
-  --color-ink-disabled: #a3a3a3;
-
-  /* ---------- Surfaces ---------- */
-  --color-background: #fafafa; /* Bookie white — app background */
-  --color-surface: #ffffff; /* cards, inputs, modals */
-  --color-surface-muted: #f4f4f5; /* hover fills, subtle wells */
-  --color-surface-elevated: #ffffff; /* dropdowns, popovers (pair with shadow) */
-
-  /* ---------- Text ---------- */
-  --color-text: #000000;
-  --color-text-secondary: #404040;
-  --color-text-muted: #737373;
-  --color-text-disabled: #a3a3a3;
-  --color-text-inverse: #fafafa; /* text on ink/black surfaces */
-
-  /* ---------- Status (semantic) ----------
-     Text-on-muted pairs are AA-checked against their muted backgrounds.
-     Components must consume these tokens, not raw colors. */
-  --color-success: #15803d;
-  --color-success-muted: #dcfce7;
-  --color-success-soft: #f0fdf4;
-  --color-success-strong: #166534;
-
-  --color-pending: #b45309;
-  --color-pending-muted: #fef3c7;
-  --color-pending-soft: #fffbeb;
-  --color-pending-strong: #92400e;
-
-  --color-warning: #a16207;
-  --color-warning-muted: #fef9c3;
-  --color-warning-soft: #fefce8;
-  --color-warning-strong: #854d0e;
-
-  --color-error: #dc2626;
-  --color-error-muted: #fee2e2;
-  --color-error-soft: #fef2f2;
-  --color-error-strong: #b91c1c;
-
-  --color-info: #1d4ed8;
-  --color-info-muted: #dbeafe;
-  --color-info-soft: #eff6ff;
-  --color-info-strong: #1e40af;
-
-  --color-neutral: #52525b;
-  --color-neutral-muted: #f4f4f5;
-  --color-neutral-soft: #fafafa;
-  --color-neutral-strong: #3f3f46;
+  --color-brand-muted: #fffbcc;
+  --color-brand-on: #000000; /* foreground used on brand-yellow */
 
   /* ---------- Borders ---------- */
-  --color-border-subtle: #ebebeb;
-  --color-border: #e4e4e7;
-  --color-border-strong: #d4d4d8;
-  --color-border-focus: #000000;
+  --color-border-subtle: var(--bk-border-subtle);
+  --color-border: var(--bk-border);
+  --color-border-strong: var(--bk-border-strong);
+  --color-border-focus: var(--bk-border-focus);
   --color-border-error: #dc2626;
-  --color-border-success: #15803d;
+
+  /* ---------- Status (semantic) ---------- */
+  --color-success: var(--bk-success);
+  --color-success-muted: var(--bk-success-muted);
+  --color-success-strong: var(--bk-success-strong);
+  --color-pending: var(--bk-pending);
+  --color-pending-muted: var(--bk-pending-muted);
+  --color-pending-strong: var(--bk-pending-strong);
+  --color-warning: var(--bk-warning);
+  --color-warning-muted: var(--bk-warning-muted);
+  --color-warning-strong: var(--bk-warning-strong);
+  --color-error: var(--bk-error);
+  --color-error-muted: var(--bk-error-muted);
+  --color-error-strong: var(--bk-error-strong);
+  --color-info: var(--bk-info);
+  --color-info-muted: var(--bk-info-muted);
+  --color-info-strong: var(--bk-info-strong);
+  --color-neutral: var(--bk-neutral);
+  --color-neutral-muted: var(--bk-neutral-muted);
+  --color-neutral-strong: var(--bk-neutral-strong);
 
   /* ---------- Radius ---------- */
-  /* Default Tailwind scale (rounded-sm/md/lg/xl/…) is kept.
-     These aliases pin shared component shapes. */
-  --radius-control: 0.5rem; /* buttons, inputs, selects */
-  --radius-card: 1rem; /* cards, modals, panels */
+  --radius-control: 0.5rem;
+  --radius-card: 1rem;
 
   /* ---------- Shadows (subtle, editorial) ---------- */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08),
-    0 4px 6px -4px rgb(0 0 0 / 0.08);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 12px 20px -6px rgb(0 0 0 / 0.1), 0 4px 8px -4px rgb(0 0 0 / 0.08);
 }
 
 /* Fluid step-down for display sizes on small screens. */
@@ -116,7 +184,6 @@
 }
 
 /* ---------- Semantic text styles ---------- */
-/* Usage: text-h1, text-body, text-caption, text-fun … */
 
 @utility text-display {
   font-size: var(--text-display);
@@ -190,38 +257,55 @@
   letter-spacing: 0.01em;
 }
 
-/* Decorative handwritten text — use sparingly (promos, callouts, empty states). */
+/* Decorative handwritten text — use sparingly. */
 @utility text-fun {
   font-family: var(--font-fun);
   font-weight: 600;
 }
 
-/* Accessible focus indicator for interactive elements. */
-@utility focus-ring {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
+
+/* ---------- Base ---------- */
 
 @layer base {
   html {
-    color-scheme: light; /* Bookie ships light-only for now */
+    scroll-behavior: smooth;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-text);
     font-family: var(--font-sans);
+    transition: background-color 200ms ease;
   }
 
   ::selection {
     background-color: var(--color-brand);
-    color: var(--color-ink);
+    color: var(--color-brand-on);
   }
 
-  /* Keyboard focus is always visible and never color-only. */
   :focus-visible {
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
+  }
+
+  /* Every interactive element gets a pointer cursor (Tailwind v4 preflight
+     leaves buttons at the default arrow). Text inputs keep the I-beam. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  select:not(:disabled),
+  summary,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"],
+  input[type="file"] {
+    cursor: pointer;
   }
 
   input[type="checkbox"],
@@ -248,20 +332,21 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
     *,
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
     }
   }
 }
 
-/* ---------- Status tokens ----------
-   Reusable semantic badge classes. Future components (order timeline,
-   payment slips, stock indicators) consume these instead of hard-coded colors. */
+/* ---------- Status tokens ---------- */
 
 @layer components {
   .status {
@@ -303,7 +388,7 @@
   }
 
   .status-neutral {
-    background-color: var(--color-neutral-muted);
+    background-color: var(--bk-neutral-muted);
     color: var(--color-neutral);
   }
 }

@@ -2,38 +2,39 @@
 
 ## A1 — Admin Foundation 🔒 LOCKED
 
-A1 has been reviewed, verified, and locked.
+## A2 — Dashboard & Analytics 🔒 LOCKED
 
-## A2 — Dashboard & Analytics 🚧 IN PROGRESS
+A2 has been reviewed, verified, and locked.
+
+## A3 — Catalog Management 🚧 IN PROGRESS
 
 ### Objective
 
-Build the real Bookie admin dashboard with real database analytics — KPI overview, revenue charts, order analytics, category breakdowns, payment analytics, and inventory alerts. Replace the A1 placeholder dashboard with production-quality data visualizations.
+Build the admin catalog management interface — CRUD for books, authors, categories, and publishers.
 
 ### What was done
 
-_(implementing now)_
+_(not started — awaiting implementation)_
 
 ### Scope
 
-- [x] KPI overview cards (Total Revenue, Total Orders, Pending Orders, Completed Orders, Books, Low Stock)
-- [x] Revenue chart (daily/weekly/monthly)
-- [x] Order analytics chart (orders over time by status)
-- [x] Sales by category breakdown
-- [x] Payment analytics (totals, status breakdown)
-- [x] Inventory alerts (low stock, out of stock)
-- [x] Server-side data aggregation (no fake data)
-- [x] Dark mode compatible charts
-- [x] Responsive mobile/desktop layout
-- [x] Empty states for no data
+- [ ] Book list with search, filter, sort
+- [ ] Book create/edit form
+- [ ] Book detail view
+- [ ] Book status management (DRAFT/PUBLISHED/ARCHIVED)
+- [ ] Author list with search
+- [ ] Author create/edit form
+- [ ] Category list with search
+- [ ] Category create/edit form
+- [ ] Publisher list (placeholder)
+- [ ] Publisher create/edit (placeholder)
+- [ ] Image upload for book covers and author photos
+- [ ] Bulk actions where appropriate
 
 ### Not in scope
 
-- A3 catalog CRUD
 - A4 inventory management
 - A5 order management
 - A6 payment management
 - A7 content management
 - A8 admin polish
-- Real-time WebSocket updates
-- Export/download functionality

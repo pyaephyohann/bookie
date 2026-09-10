@@ -14,7 +14,7 @@ This document describes the architecture **as it actually exists**. Items that a
 - **Prisma 7.10** + **PostgreSQL** — data layer (`prisma-client` generator, `@prisma/adapter-pg` driver adapter)
 - **@fontsource-variable/scoutie-sans** — primary UI font (self-hosted); **Caveat** via `next/font/google` (decorative)
 
-## Route structure (CURRENT — A1)
+## Route structure (CURRENT — A2)
 
 ```
 app/
@@ -47,7 +47,7 @@ app/
   admin/login/LoginForm.tsx Client-side login form
   admin/actions.ts          Server Actions — login, logout, getCurrentAdmin
   admin/(dashboard)/layout.tsx  Admin shell — auth-gated, sidebar + navbar
-  admin/(dashboard)/page.tsx    Dashboard shell (placeholder for A2)
+  admin/(dashboard)/page.tsx    Dashboard — real analytics (KPIs, revenue, orders, categories, payments, inventory)
   admin/(dashboard)/settings/   Settings shell
   admin/(dashboard)/loading.tsx Skeleton loading state
   admin/(dashboard)/error.tsx   Error boundary
@@ -211,7 +211,34 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - Global `prefers-reduced-motion` handling: CSS guard in `globals.css` + `useReducedMotion()` gates in every animated component.
 - Durations are kept short (150–500ms) per the design direction.
 
+## Admin Dashboard Analytics (CURRENT — A2)
+
+- **Queries:** `lib/admin/dashboard-queries.ts` — server-side aggregation for all dashboard data. Runs in a single `Promise.all` on the dashboard page.
+- **KPIs:** Total Revenue (30d verified payments), Total Orders, Pending Orders, Completed Orders, Books, Low Stock (≤ 5 units).
+- **Revenue chart:** line chart with 30d/90d toggle. Only VERIFIED payments count as revenue.
+- **Orders by status:** bar chart showing PLACED/CONFIRMED/PREPARING/SHIPPED/DELIVERED/REJECTED/CANCELLED distribution.
+- **Orders over time:** line chart with placed/confirmed/delivered series over 30 days.
+- **Category sales:** horizontal progress bar breakdown of revenue by category (top 8).
+- **Payment analytics:** donut chart (verified/pending/rejected) + by-method (KPay/AYA Pay) breakdown.
+- **Inventory alerts:** published books with stock ≤ 10, out-of-stock (red) and low-stock (warning) severity.
+- **Recent orders:** table with bookPass, customer name, total, status badge, date.
+- **Charts:** SVG-based (BarChart, LineChart, DonutChart) — no external charting library.
+- **Empty states:** every section shows a friendly empty state when the database has no data.
+
 ## Admin App (CURRENT — A1)
+
+- **Authentication:** `lib/auth.ts` — `node:crypto` scrypt password hashing, HMAC-SHA256 signed session cookie (`bookie_admin_session`), `requireAdmin()` server-side authorization helper. No auth library dependencies.
+- **Session:** httpOnly cookie with signed JSON payload (`{ userId }`). 7-day expiry. `sameSite: lax` for CSRF protection.
+- **Authorization:** `requireAdmin()` runs in server components/layouts. Reads session cookie, validates user exists and is active, checks role (ADMIN or STAFF), redirects to `/admin/login` if unauthorized. No client-side role checks.
+- **Admin shell:** `AdminShell` composes `AdminSidebar` (persistent on desktop, drawer on mobile) + `AdminNavbar` (sticky top bar with sidebar trigger, branding, ThemeToggle, profile menu) + content area.
+- **Navigation:** organized by section (Dashboard, Catalog, Inventory, Orders, Payments, Content, Analytics, Settings). Unimplemented routes show "Soon" badges.
+- **SiteChrome:** hides Navbar/Footer/FloatingCart on `/admin` routes — same pattern as reader routes.
+- **Login:** `/admin/login` — public route with `LoginForm` using `useActionState` for pending/error states.
+- **Dashboard:** `/admin` — real analytics with KPIs, revenue/orders/categories/payments charts, inventory alerts, recent orders.
+- **Settings:** `/admin/settings` — shell with Admin Account, Appearance, Security sections.
+- **Bootstrap:** `scripts/create-admin.mjs` — interactive script to create or promote admin users.
+- **Environment:** `BOOKIE_AUTH_SECRET` — HMAC signing key for session cookies.
+- **Prisma schema:** unchanged — existing `User` model with `UserRole` enum (ADMIN/STAFF) is sufficient.
 
 - **Authentication:** `lib/auth.ts` — `node:crypto` scrypt password hashing, HMAC-SHA256 signed session cookie (`bookie_admin_session`), `requireAdmin()` server-side authorization helper. No auth library dependencies.
 - **Session:** httpOnly cookie with signed JSON payload (`{ userId }`). 7-day expiry. `sameSite: lax` for CSRF protection.

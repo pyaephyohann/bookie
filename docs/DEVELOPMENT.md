@@ -132,3 +132,15 @@ Do **not** claim a check passed unless it actually passed.
 - **Navigation "Soon" badges:** unimplemented admin routes show "Soon" badges rather than placeholder pages. This avoids misleading functionality while keeping the navigation structure visible for A2–A8.
 - **`useActionState` for login forms:** Next.js App Router's `useActionState` (React 19) provides pending state and error handling for server actions without manual state management.
 - **Admin route groups:** `(dashboard)` route group keeps admin pages under a shared layout without affecting the URL path. The login page sits outside this group so it doesn't require auth.
+
+## A2 learnings (dashboard analytics)
+
+- **No charting library needed:** SVG-based charts (BarChart, LineChart, DonutChart) are simple, dark-mode compatible, and avoid adding dependencies. Keep charts simple — they're admin tools, not data journalism.
+- **Server-side aggregation:** all dashboard queries run on the server in a single `Promise.all`. No client-side data fetching, no loading spinners for data. The page renders with data immediately.
+- **Revenue = verified payments:** only VERIFIED payments count as revenue. PENDING payments are shown separately in the payment analytics section. This matches the business reality — pending payments haven't been confirmed yet.
+- **Decimal conversion:** Prisma returns `Decimal` objects for money fields. Convert with `Number(val)` or a helper function before passing to client components. Never pass Decimal objects to the client.
+- **Parallel queries:** use `Promise.all` for independent queries (KPIs, revenue, orders, categories, payments, inventory). Do not chain dependent queries unnecessarily.
+- **Empty states:** every chart/section must handle the case where the database has no data. Show a friendly empty state rather than a broken chart or blank area.
+- **Date bucketing:** for time-series charts, pre-create all date buckets (including zeros) so the chart has a consistent x-axis even when some days have no data.
+- **Category sales:** querying category sales requires traversing Category → CategoryBook → Book → OrderItem. This is a multi-hop query — keep it efficient by only selecting needed fields.
+- **Inventory alerts:** filter by `status = PUBLISHED` and `stockQuantity ≤ 10` to show only relevant books. Sort by stock ascending so the most critical alerts appear first.

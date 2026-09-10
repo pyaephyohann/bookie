@@ -22,8 +22,8 @@ The Bookie project is delivered in milestones across the User App and Admin App.
 | # | Milestone | Focus |
 |---|---|---|
 | A1 | **Admin Foundation** | 🔒 Locked — Admin auth (scrypt + HMAC session cookie), server-side `requireAdmin()` authorization, `/admin` shell (sidebar + navbar + profile menu), dashboard shell, settings shell, login page, loading/error/not-found states, SiteChrome admin route handling, bootstrap script, documentation |
-| A2 | **Dashboard & Analytics** | 🚧 In Progress — KPI analytics, revenue charts, order charts, category breakdowns, payment analytics, inventory analytics |
-| A3 | **Catalog Management** | ⏳ Books, authors, categories, publishers CRUD |
+| A2 | **Dashboard & Analytics** | 🔒 Locked — KPI overview, revenue analytics (30d/90d), orders by status, orders over time, sales by category, payment analytics (donut + method breakdown), inventory alerts, recent orders, SVG charts, server-side aggregation |
+| A3 | **Catalog Management** | 🚧 In Progress — Books, authors, categories, publishers CRUD |
 | A4 | **Inventory Management** | ⏳ Stock levels, restock, adjustments, damage tracking |
 | A5 | **Order Management** | ⏳ Order list, detail, status updates, timeline management |
 | A6 | **Payment Management** | ⏳ Payment verification, approval/rejection, slip review |

@@ -183,14 +183,14 @@ export function BookDetailClient({ book }: { book: BookDetail }) {
           {book.isReadableOnline && (
             <div className="mt-4">
               <Link
-                href="/reader"
+                href={`/books/${book.slug}/read`}
                 className="inline-flex items-center gap-2 rounded-control border border-border-strong bg-surface px-5 py-2.5 text-button text-text transition-colors hover:bg-surface-muted"
               >
                 <Eye className="size-4" aria-hidden />
-                Read Online Preview
+                Read Online
               </Link>
               <p className="text-caption mt-1.5 text-text-muted">
-                Full reader available after purchase — B9 Online Reading
+                Available for online reading
               </p>
             </div>
           )}

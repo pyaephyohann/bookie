@@ -110,3 +110,14 @@ B8 added the customer-facing order tracking page (`/track?pass=XXX`), all **read
 - **Payment display:** latest `Payment` (ordered by `createdAt` desc, take 1) — method, amount, status.
 
 No writes, no new tables, no schema changes — the existing `Order`, `OrderItem`, `OrderStatusHistory`, and `Payment` models fully support tracking.
+
+## B9 usage (CURRENT — read-only, no schema change)
+
+B9 added the online reader (`/books/[slug]/read`), all **read-only** and server-side (`app/books/[slug]/read/page.tsx`):
+
+- **Book lookup:** `Book` fetched by unique `slug` + `status = PUBLISHED`.
+- **Online reading flag:** `Book.isReadableOnline` gates the reader entry point and route.
+- **Content:** the one-to-one `BookContent` row (`bookId @unique`) supplies `contentType` (PDF/EPUB/OTHER), `fileUrl` (file-based content), and `content` (HTML/text). No chapter/section model exists — the reader is a single continuous reading experience by design.
+- **Reader state:** reading position and font/width settings live in `localStorage` (client-side, keyed by slug) — deliberately NOT a database model, because Bookie guests read without an account.
+
+No writes, no new tables, no schema changes — the existing `Book` + `BookContent` models fully support online reading.

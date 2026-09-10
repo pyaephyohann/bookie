@@ -12,7 +12,7 @@ The Bookie user-facing application is delivered in exactly 10 milestones. This i
 | B6 | **Payment** | ✅ Completed — KPay / AYA Pay payment method selection, payment instructions with QR area, payment slip upload (preview/replace/remove), server-side payment record creation, PENDING verification status, duplicate submission protection |
 | B7 | **Order Complete** | ✅ Completed — polished order completion page with BookPass display/copy, payment status badge, order summary, shipping details, tracking link with copy, navigation, responsive/theme/accessibility |
 | B8 | **Order Tracking** | ✅ Completed — `/track` BookPass lookup, status timeline from real OrderStatusHistory, terminal Rejected/Cancelled states, order + payment summary, copy BookPass / tracking link, footer + navbar + B7 links wired |
-| B9 | **Online Reading** | In-app book reader for readable books |
+| B9 | **Online Reading** | ✅ Completed — real reader at `/books/[slug]/read` with BookContent HTML/text rendering (PDF embed / EPUB file fallback), font size + reading width controls, scroll progress, localStorage reading position, distraction-free chrome, unavailable states, B3 entry point wired |
 | B10 | **Production Polish** | Performance, SEO, accessibility, deployment hardening |
 
 Out of scope for the user app: admin dashboard, POS, and inventory management (separate concerns backed by the same database schema).

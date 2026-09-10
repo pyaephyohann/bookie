@@ -143,6 +143,42 @@ Reusable patterns added for Home & Discovery. All follow the token system above 
 - Responsive grid of `BookCard` components.
 - Empty state when no books.
 
+## Online Reading (B9)
+
+### Reader layout
+
+- Dedicated reader route `/books/[slug]/read` — not a normal store page.
+- **Distraction-free:** the global Navbar, Footer and FloatingCart are hidden on reader routes (`SiteChrome`); the reader has its own minimal sticky header.
+- Sticky header: back-to-book link, truncated title + author, controls. A 2px brand-yellow scroll-progress bar sits at the very top of the header.
+- Reading content centered with a comfortable measure (~68ch narrow / ~88ch wide), generous line-height (1.8) and paragraph spacing via a scoped `.reader-prose` layer — the global Bookie typography system is untouched.
+
+### Reader controls
+
+- Font size A− / A+ (15–26px, default 19px) with a live `px` readout (`aria-live="polite"`), disabled at bounds.
+- Reading-width toggle (narrow ↔ wide), icon-only, labeled.
+- Controls persist in localStorage (`bookie:reader-settings`) via the same `useSyncExternalStore` pattern as theme/cart.
+- All controls are real buttons with visible focus and keyboard access.
+
+### Content rendering
+
+- `BookContent.content` HTML renders inside `.reader-prose` (scoped headings, paragraphs, lists, blockquotes, links, images, code, hr). Plain text renders with `whitespace-pre-line`.
+- PDF `fileUrl` → embedded iframe (aspect-ratio container) + "open in new tab" link.
+- EPUB/OTHER `fileUrl` → download-style card (browsers can't render EPUB natively).
+
+### Progress
+
+- Scroll progress shown both as the top brand bar and via `role="progressbar"` semantics.
+- Reading position saved/restored to localStorage per book slug — restore happens after mount only (no hydration mismatch).
+
+### Mobile / theme
+
+- Mobile-first: header wraps gracefully at 360px (title truncates, controls stay reachable), no horizontal overflow.
+- Light / Dark / System all comfortable — reader uses existing semantic tokens; brand bar stays `#FFF449`; any yellow CTA keeps black text.
+
+### Unavailable states
+
+- Missing/unpublished book → `notFound()`; no readable content or DB failure → dashed EmptyState-style card with "Back to Book".
+
 ### Search results
 
 - Search input with real-time query state.

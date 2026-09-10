@@ -73,7 +73,7 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Cart state | ✅ | Client-side count + add-to-cart feedback; no persistence or checkout |
 | Floating cart | ✅ | Bottom-left shortcut with item count |
 | Category pages | ✅ | `/categories` index + `/categories/[slug]` detail with book grid |
-| Book details page | ✅ | `/books/[slug]` — cover, title, author, price, description, wishlist, add-to-cart, recently-viewed recording, online reading entry point |
+| Book details page | ✅ | `/books/[slug]` — cover, title, author, price, description, wishlist, add-to-cart, recently-viewed recording, online reading entry point (B9) |
 | Authors pages | ✅ | `/authors` index + `/authors/[slug]` detail with book grid |
 | Search backend | ✅ | `/search?q=...` — real Prisma search by title, author, category, ISBN |
 | Wishlist | ✅ | Client-side localStorage, SSR-safe, toggle from book cards and detail pages |
@@ -83,7 +83,7 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Payment slip upload | ✅ | B6 |
 | BookPass generation | ✅ | B7 — Order Complete |
 | Order tracking page | ✅ | B8 — Order Tracking — `/track` BookPass lookup, status timeline (history-backed), terminal Rejected/Cancelled states, order + payment summary, copy BookPass / tracking link |
-| Online reading (reader) | 🧭 | B9 — Online Reading |
+| Online reading (reader) | ✅ | B9 — Online Reading — `/books/[slug]/read` real reader: BookContent HTML/text rendered with scoped reader typography, font-size + reading-width controls, scroll progress, localStorage reading position, PDF embed / EPUB file fallback, distraction-free chrome, friendly unavailable states |
 | Admin / POS / inventory | 🧭 | Not in the user-app roadmap |
 
 **Data strategy (B2):** the Home page prefers real Prisma data. Every discovery section has a genuine query path against the existing schema. When the database has no PUBLISHED books (empty dev DB, unreachable, or broken), the whole page falls back to the mock catalogue so the storefront is never unusable. This is an explicit, documented fallback — not fake database records.

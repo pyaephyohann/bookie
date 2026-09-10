@@ -391,4 +391,110 @@
     background-color: var(--bk-neutral-muted);
     color: var(--color-neutral);
   }
+
+  /* ---------- B9 reader typography (scoped to reading content) ----------
+     Font size is applied inline by the reader (px); this layer handles
+     line-height, paragraph spacing and element styling for HTML content. */
+  .reader-prose {
+    line-height: 1.8;
+    color: var(--bk-text);
+  }
+
+  .reader-prose > * + * {
+    margin-top: 1.25em;
+  }
+
+  .reader-prose h1,
+  .reader-prose h2,
+  .reader-prose h3,
+  .reader-prose h4 {
+    font-weight: 700;
+    color: var(--bk-text);
+    line-height: 1.3;
+  }
+
+  .reader-prose h1 {
+    font-size: 1.6em;
+    margin-top: 0;
+  }
+
+  .reader-prose h2 {
+    font-size: 1.35em;
+  }
+
+  .reader-prose h3 {
+    font-size: 1.15em;
+  }
+
+  .reader-prose h4 {
+    font-size: 1em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .reader-prose p {
+    margin: 0 0 1.25em;
+  }
+
+  .reader-prose ul,
+  .reader-prose ol {
+    padding-left: 1.5em;
+  }
+
+  .reader-prose ul {
+    list-style: disc;
+  }
+
+  .reader-prose ol {
+    list-style: decimal;
+  }
+
+  .reader-prose li + li {
+    margin-top: 0.4em;
+  }
+
+  .reader-prose blockquote {
+    border-left: 3px solid var(--bk-border-strong);
+    padding-left: 1em;
+    color: var(--bk-text-secondary);
+    font-style: italic;
+  }
+
+  .reader-prose a {
+    color: var(--bk-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .reader-prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+  }
+
+  .reader-prose code {
+    font-size: 0.9em;
+    background-color: var(--bk-surface-muted);
+    padding: 0.15em 0.4em;
+    border-radius: 0.25rem;
+  }
+
+  .reader-prose pre {
+    background-color: var(--bk-surface-muted);
+    padding: 1em;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+
+  .reader-prose pre code {
+    background-color: transparent;
+    padding: 0;
+  }
+
+  .reader-prose hr {
+    border: none;
+    border-top: 1px solid var(--bk-border);
+    margin: 2em 0;
+  }
 }

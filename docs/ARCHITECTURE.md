@@ -14,7 +14,7 @@ This document describes the architecture **as it actually exists**. Items that a
 - **Prisma 7.10** + **PostgreSQL** — data layer (`prisma-client` generator, `@prisma/adapter-pg` driver adapter)
 - **@fontsource-variable/scoutie-sans** — primary UI font (self-hosted); **Caveat** via `next/font/google` (decorative)
 
-## Route structure (CURRENT — B8)
+## Route structure (CURRENT — B9)
 
 ```
 app/
@@ -23,6 +23,7 @@ app/
   globals.css             Design tokens + base/component layers (Tailwind v4 @theme)
   icon.png                Favicon
   books/[slug]/page.tsx   Book detail (dynamic, server-fetched)
+  books/[slug]/read/      Online reader (dynamic, server-fetched) — B9
   categories/page.tsx     Categories index (static)
   categories/[slug]/      Category detail (dynamic, server-fetched)
   authors/page.tsx        Authors index (static)
@@ -40,6 +41,8 @@ app/
   track/page.tsx             Order Tracking — BookPass lookup + status timeline (B8)
   track/TrackOrderClient.tsx Client-side tracking experience
   design-system/page.tsx  Internal reference page for design-token QA
+  layout.tsx wraps children in `SiteChrome`, which hides Navbar/Footer/FloatingCart on reader routes
+  components/layout/SiteChrome.tsx  Client shell — chrome hidden on `/books/[slug]/read`
 ```
 
 All pages are server components; interactive pieces are isolated in `"use client"` components. Dynamic routes (`[slug]`) are server-rendered on demand; index pages are statically prerendered.
@@ -145,6 +148,16 @@ The boundary is intentional: data crosses from server to client as serialisable 
 - **Timeline data:** `OrderStatusHistory` rows (ordered by `createdAt`) drive the timeline; the current status comes from `Order.status`. Lifecycle steps are completed only when present in history or strictly before the current status — never fabricated. `REJECTED` / `CANCELLED` render as distinct terminal states (history steps actually taken + a terminal banner; no future success steps).
 - **Data exposure:** only order items, quantities, subtotal/shipping/total, statuses, and payment method/amount/status are passed to the client. Customer contact fields (phone, email, shipping address) are never selected.
 - **Security:** server-authoritative lookup by BookPass; no client-submitted order data is trusted; no Prisma code crosses into client components.
+
+## Online Reading (CURRENT — B9)
+
+- **Route:** `/books/[slug]/read` — server component (`app/books/[slug]/read/page.tsx`).
+- **Data flow:** the page fetches the published `Book` by slug and its one-to-one `BookContent` (only `contentType`, `fileUrl`, `content` — plus title/authors). No internal IDs, prices, stock, or order data reach the client. `notFound()` for missing/unpublished books; a friendly unavailable state (never raw DB errors) when `isReadableOnline` is false or no readable content exists.
+- **Content formats:** the inline `content` field (HTML or plain text) is rendered inside the scoped `.reader-prose` typography layer (added in `app/globals.css`). `contentType = PDF` with a `fileUrl` renders in an embedded iframe with an "open in new tab" fallback; EPUB/OTHER files show a download-style card (browsers can't render EPUB inline without a library — no new dependency). Content is admin-authored database content rendered server-side; nothing user-submitted is rendered as HTML.
+- **Reader client:** `app/books/[slug]/read/ReaderClient.tsx` — sticky header (back to book, title/author, font-size A−/A+, reading-width toggle) + a 2px scroll-progress bar (`role="progressbar"`). Font size and column width persist in localStorage via a `useSyncExternalStore` store (`lib/reader-progress.ts`, same pattern as theme/cart — stable cached snapshot, SSR-safe).
+- **Reading position:** scroll position is saved to `localStorage` (key `bookie:reader-progress:{slug}`) on scroll (throttled) and on `pagehide`/unmount, and restored on mount inside `useEffect` — never during render, so no hydration mismatch. Malformed stored values are ignored.
+- **Distraction-free chrome:** `components/layout/SiteChrome.tsx` (client) uses `usePathname` to hide the Navbar, Footer and FloatingCart on `/books/[slug]/read`; the reader provides its own back navigation. `app/layout.tsx` renders children inside `SiteChrome`.
+- **B3 integration:** the book-detail "Read Online" entry point now links to `/books/[slug]/read` (was a `/reader` placeholder).
 
 ## Utilities (CURRENT — B3)
 

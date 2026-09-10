@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Caveat } from "next/font/google";
 import "./globals.css";
-import { FloatingCart } from "@/components/cart/FloatingCart";
-import { Footer } from "@/components/navigation/Footer";
-import { Navbar } from "@/components/navigation/Navbar";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 import { ThemeProvider, themeInitScript } from "@/components/theme/ThemeContext";
 
 // Decorative font only — the primary UI font (Scoutie Sans) is self-hosted
@@ -29,12 +27,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
-          <Navbar />
-          <main id="main" className="flex-1">
-            {children}
-          </main>
-          <Footer />
-          <FloatingCart />
+          <SiteChrome>
+            <main id="main" className="flex-1">
+              {children}
+            </main>
+          </SiteChrome>
         </ThemeProvider>
       </body>
     </html>

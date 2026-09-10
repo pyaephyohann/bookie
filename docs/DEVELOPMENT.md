@@ -111,3 +111,13 @@ Do **not** claim a check passed unless it actually passed.
 - **UTC-fixed date formatting:** use `toLocaleString` with an explicit `timeZone: "UTC"` so server-render and client hydration produce identical strings.
 - **Minimal data exposure on public pages:** the tracking page passes only items, totals, statuses, and payment method/amount/status to the client. Customer contact fields (phone, email, shipping address) are not selected at all.
 - **Footer placeholder links:** B1-era `#/route` hash placeholders in the Footer are not real routes; when a milestone makes a route real, update the corresponding footer entry to a `next/link` `Link` (plain `<a>` to a real route trips `no-html-link-for-pages`).
+
+## B9 learnings (online reading)
+
+- **Reader state is localStorage, not the database:** reading position and font/width settings live client-side (guests have no account). Progress restore happens inside `useEffect` after mount — never during render — so SSR/hydration stay clean.
+- **Settings via useSyncExternalStore:** font size / width follow the ThemeContext/cart store pattern (`lib/reader-progress.ts`) — stable cached client snapshot + constant server snapshot. Do not read `localStorage` inside a `useState` initializer (hydration mismatch); the external-store pattern avoids it.
+- **Scoped reader typography:** reading-specific styles (line-height, paragraph spacing, headings, lists, blockquote, code) live in a `.reader-prose` component layer in `app/globals.css`; the global Bookie typography system is untouched. Font size is applied inline (px) so controls only change one container style.
+- **HTML content boundary:** `BookContent.content` is admin-authored database content rendered via `dangerouslySetInnerHTML` inside `.reader-prose`. Nothing user-submitted is ever rendered as HTML; keep it that way.
+- **No chapters in the schema:** `BookContent` is a single content blob — do not invent chapter/section navigation. The reader is a continuous scroll with scroll progress instead.
+- **Chrome hiding:** hide Navbar/Footer/FloatingCart on reader routes with a `usePathname`-based client wrapper (`SiteChrome`) — same server/client output, so no hydration risk.
+- **File-based content:** PDF renders in an iframe with a fallback link; EPUB/OTHER can't render natively in the browser — show a download-style card rather than adding a rendering dependency.

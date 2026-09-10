@@ -1,10 +1,10 @@
 # Current Task
 
-## B8 — Order Tracking
+## B9 — Online Reading
 
 ### Objective
 
-Build the customer-facing order tracking experience — customers enter their BookPass and see the current state of their order.
+Turn the B3 "Read Online" entry point into a real, comfortable, distraction-free online reading experience for published books with `BookContent`.
 
 ### Status
 
@@ -12,53 +12,39 @@ Build the customer-facing order tracking experience — customers enter their Bo
 
 ### What was done
 
-- Created `app/track/page.tsx` — Server component:
-  - Reads `pass` from the query string and normalizes it (trim + uppercase)
-  - Fetches the order from Prisma by BookPass (items, latest payment, status history)
-  - Renders the lookup form when no BookPass is provided
-  - Renders the friendly not-found state for invalid BookPasses (no raw DB errors ever leak)
-- Created `app/track/TrackOrderClient.tsx` — Client component:
-  - BookPass lookup form (accessible label, normalized submission, searching state)
-  - Status timeline driven by the **actual** `OrderStatusHistory` records (never fabricated)
-  - Terminal Rejected/Cancelled states — visually distinct, no future success steps shown
-  - Order summary (items, quantities, subtotal/shipping/total — all from the DB)
-  - Payment status (PENDING/VERIFIED/REJECTED) with method and amount
-  - Copy BookPass + Copy Tracking Link with clipboard fallback and "Copied!" feedback
-  - "Check Another Order" + Continue Shopping navigation
-  - Responsive layout, light/dark/system themes, reduced-motion support, keyboard-accessible
-- Updated `components/navigation/Footer.tsx`:
-  - "Track Order" placeholder link changed from `#/track` to the real `/track` route (via `next/link`)
-
-### Timeline behavior
-
-- Successful lifecycle: `PLACED → CONFIRMED → PREPARING → SHIPPED → DELIVERED`
-- A step is marked completed only when it exists in the real `OrderStatusHistory` or lies strictly before the authoritative current `Order.status`
-- `REJECTED` / `CANCELLED` are terminal: they show the history steps that actually happened plus a distinct terminal banner — future success statuses are never shown as completed
-- No customer-identifying data (phone, email, address) is exposed — only order items, totals, and statuses
+- Created `app/books/[slug]/read/page.tsx` — Server component:
+  - Fetches the published `Book` by slug plus its one-to-one `BookContent` (only `contentType`, `fileUrl`, `content`, title, authors)
+  - `notFound()` for missing/unpublished books; friendly unavailable states (never raw DB errors) when reading is off or content is missing
+  - `generateMetadata` for the reader title
+- Created `app/books/[slug]/read/ReaderClient.tsx` — Client reader:
+  - Sticky minimal header: back-to-book, truncated title + author, font-size A−/A+ (15–26px), reading-width toggle (68ch/88ch), scroll-progress bar (`role="progressbar"`)
+  - Renders `BookContent.content` (HTML via scoped `.reader-prose` typography, or plain text), PDF `fileUrl` in an embedded iframe, EPUB/OTHER file fallback card
+  - Reading position saved/restored to localStorage per slug (restore after mount only — hydration-safe); settings persisted via `useSyncExternalStore`
+- Added `lib/reader-progress.ts` — SSR-safe localStorage helpers + settings store (stable cached snapshot, malformed-data tolerant)
+- Added `.reader-prose` scoped reading typography layer to `app/globals.css` (global type system untouched)
+- Added `components/layout/SiteChrome.tsx` — hides Navbar/Footer/FloatingCart on reader routes for a calm reading experience; wired into `app/layout.tsx`
+- Updated `app/books/[slug]/BookDetailClient.tsx` — "Read Online" now links to the real reader (was a `/reader` placeholder)
 
 ### Scope
 
-- [x] `/track` BookPass lookup UI
-- [x] Server-side order lookup by BookPass (Prisma, never client data)
-- [x] Status timeline from real status history
-- [x] Terminal Rejected / Cancelled states
-- [x] Order summary (authoritative totals)
-- [x] Payment status display
-- [x] Copy BookPass + Copy Tracking Link
-- [x] Navbar / Footer / B7 links wired to the real route
-- [x] Responsive, themed, accessible
+- [x] Reader route `/books/[slug]/read`
+- [x] BookContent HTML/text rendering (scoped typography)
+- [x] Font size + reading width controls (persisted)
+- [x] Scroll progress + reading position (localStorage, SSR/hydration-safe)
+- [x] PDF embed / EPUB file fallback
+- [x] Distraction-free chrome on reader routes
+- [x] B3 "Read Online" entry point wired to the real route
+- [x] Missing/unpublished/no-content unavailable states
+- [x] Responsive (360px → desktop), light/dark/system themes, accessibility (semantic HTML, aria-live, progressbar semantics, keyboard controls, focus states), reduced-motion aware
+- [x] No schema changes, no new dependencies, no fake content records
 
 ### Not in scope
 
-- Admin order/payment management
-- Email / SMS notifications
-- B9 Online Reading
+- Admin content management / uploads
+- DRM, paid reading, subscriptions, auth changes
+- Email/SMS, payment, order, tracking changes
 - B10 production polish
 
-## B9 — Online Reading
+## B10 — Production Polish
 
-Has not started. Will begin when B9 is approved.
-
-## Next milestone
-
-**B9 — Online Reading**
+**B10 — Production Polish is next.** Has not started; will begin when B10 is approved.

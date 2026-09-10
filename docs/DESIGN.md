@@ -201,3 +201,48 @@ Reusable patterns added for Home & Discovery. All follow the token system above 
 - **Success:** green checkmark, "Awaiting Verification", BookPass, tracking link
 - **Already paid:** CreditCard icon, "Payment Already Submitted"
 - **Error:** red alert banner with AlertCircle icon
+
+## Order Complete (B7)
+
+### Success indicator
+
+- Animated green checkmark (spring animation)
+- "Thank you for your order!" headline
+- Subtitle: "Your order has been submitted successfully."
+
+### BookPass card
+
+- Prominent BookPass display (display-sm, brand color, selectable)
+- Copy button with clipboard API
+- Temporary "Copied!" feedback (2 seconds)
+- Fallback: text selection on clipboard failure
+
+### Payment status
+
+- Badge using `.status-*` classes (pending/verified/rejected)
+- Method and amount display
+- Conditional messaging for pending verification
+
+### Order summary
+
+- Items list with title, price, quantity, subtotal
+- Total with bold styling
+- Compact layout, no cover images
+
+### Shipping details
+
+- Name, phone, address with icons
+- Clean vertical list layout
+
+### Tracking link
+
+- URL displayed in a bordered container (selectable)
+- Copy Tracking Link button
+- Open Tracking Link (external link icon)
+- Points to planned `/track?pass=XXX` route (B8)
+
+### Navigation
+
+- Continue Shopping (primary yellow button)
+- Track Order (outline button)
+- Responsive: stacked on mobile, side-by-side on desktop

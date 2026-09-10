@@ -14,7 +14,7 @@ This document describes the architecture **as it actually exists**. Items that a
 - **Prisma 7.10** + **PostgreSQL** — data layer (`prisma-client` generator, `@prisma/adapter-pg` driver adapter)
 - **@fontsource-variable/scoutie-sans** — primary UI font (self-hosted); **Caveat** via `next/font/google` (decorative)
 
-## Route structure (CURRENT — B5)
+## Route structure (CURRENT — B7)
 
 ```
 app/
@@ -35,6 +35,8 @@ app/
   payment/page.tsx         Payment — order summary + slip upload (B6)
   payment/actions.ts       Server Action — payment submission
   payment/PaymentClient.tsx  Client-side payment form
+  order/complete/page.tsx    Order Complete — polished confirmation page (B7)
+  order/complete/OrderCompleteClient.tsx  Client-side completion experience
   design-system/page.tsx  Internal reference page for design-token QA
 ```
 
@@ -116,6 +118,21 @@ The boundary is intentional: data crosses from server to client as serialisable 
 - **Client component:** `app/payment/PaymentClient.tsx` — payment method selection, instructions with merchant info + QR area, slip upload with preview/replace/remove, order summary, submit with loading/success states.
 - **Config:** `lib/payment.ts` — merchant info loaded from env vars (`BOOKIE_PAYMENT_*`), dev placeholders when missing.
 - **Security:** server-authoritative amount, order eligibility check, file validation, duplicate submission protection, payment always starts as PENDING (never auto-verified).
+
+## Order Complete (CURRENT — B7)
+
+- **Route:** `/order/complete?bookPass=XXX` — query parameter carries the customer-safe BookPass identifier.
+- **Server component:** `app/order/complete/page.tsx` — fetches the order by `bookPass`, includes items, payment state, customer info, and shipping details. Passes serialised data to the client component.
+- **Client component:** `app/order/complete/OrderCompleteClient.tsx` — polished completion experience:
+  - Animated success indicator
+  - BookPass display with copy-to-clipboard
+  - Payment status badge (PENDING/VERIFIED/REJECTED) with method and amount
+  - Order summary (items, quantities, totals)
+  - Shipping details (name, phone, address)
+  - Tracking link with copy + open link (points to planned B8 `/track` route)
+  - Navigation: Continue Shopping + Track Order
+- **B6 integration:** B6 `PaymentClient.tsx` redirects to `/order/complete` after successful payment submission and when an existing pending payment is detected.
+- **Security:** order data fetched server-side from database by BookPass. No client-supplied data trusted for order/payment state.
 
 ## Utilities (CURRENT — B3)
 

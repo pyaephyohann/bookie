@@ -79,7 +79,7 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Checkout + customer information | ✅ | B5 — Checkout |
 | Payment (KPay / AYA Pay) | ✅ | B6 — Payment |
 | Payment slip upload | ✅ | B6 |
-| BookPass generation | 🧭 | B7 — Order Complete |
+| BookPass generation | ✅ | B7 — Order Complete |
 | Order tracking page | 🧭 | B8 — Order Tracking |
 | Online reading (reader) | 🧭 | B9 — Online Reading |
 | Admin / POS / inventory | 🧭 | Not in the user-app roadmap |

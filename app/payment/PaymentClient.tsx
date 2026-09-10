@@ -4,7 +4,6 @@ import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
   ArrowLeft,
-  Check,
   CreditCard,
   FileImage,
   Phone,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +59,7 @@ export function PaymentClient({ order }: { order: OrderData }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<PaymentStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   // Current merchant info based on selected method
   const merchant = getMerchantInfo(method);
@@ -122,7 +123,7 @@ export function PaymentClient({ order }: { order: OrderData }) {
     });
 
     if (result.success) {
-      setStatus("success");
+      router.push(`/order/complete?bookPass=${order.bookPass}`);
     } else {
       setError(result.error);
       setStatus("idle");
@@ -130,101 +131,11 @@ export function PaymentClient({ order }: { order: OrderData }) {
   };
 
   // ── Already paid state ────────────────────────────────────────────────
+  // Redirect to the completion page if payment already exists
 
   if (order.hasPendingPayment && status !== "success") {
-    return (
-      <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center px-4 text-center">
-        <motion.div
-          initial={reduce ? {} : { opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md rounded-card border border-border bg-surface p-8 text-center shadow-sm"
-        >
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-pending-muted">
-            <CreditCard className="size-8 text-pending" aria-hidden />
-          </div>
-          <h1 className="text-h2 font-bold text-text">
-            Payment Already Submitted
-          </h1>
-          <p className="mt-2 text-body-lg text-text-secondary">
-            A payment submission for this order is awaiting verification.
-          </p>
-          <div className="mt-6 rounded-control border border-border bg-background p-4">
-            <p className="text-caption uppercase text-text-muted">Order</p>
-            <p className="mt-1 text-h3 font-bold text-brand">
-              {order.bookPass}
-            </p>
-          </div>
-          <Link
-            href="/"
-            className="mt-6 inline-flex h-12 items-center gap-2 rounded-control bg-brand px-6 text-button text-brand-on shadow-sm transition-colors hover:bg-brand-hover"
-          >
-            Continue Shopping
-          </Link>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ── Success state ─────────────────────────────────────────────────────
-
-  if (status === "success") {
-    return (
-      <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center px-4 text-center">
-        <motion.div
-          initial={reduce ? {} : { opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="w-full max-w-md rounded-card border border-border bg-surface p-8 text-center shadow-sm"
-        >
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-            <Check className="size-8 text-green-600 dark:text-green-400" aria-hidden />
-          </div>
-          <h1 className="text-h2 font-bold text-text">Payment Submitted</h1>
-          <p className="mt-2 text-body-lg text-text-secondary">
-            Your payment proof has been received and is awaiting verification.
-          </p>
-
-          <div className="mt-6 rounded-control border border-border bg-background p-4">
-            <p className="text-caption uppercase text-text-muted">
-              Payment Status
-            </p>
-            <p className="mt-1 text-h3 font-bold text-pending">
-              Awaiting Verification
-            </p>
-          </div>
-
-          <div className="mt-4 rounded-control border border-border bg-background p-4">
-            <p className="text-caption uppercase text-text-muted">
-              BookPass
-            </p>
-            <p className="mt-1 text-h3 font-bold text-brand">
-              {order.bookPass}
-            </p>
-          </div>
-
-          <p className="mt-4 text-body-sm text-text-muted">
-            We&apos;ll verify your payment shortly. You can track your order
-            status using your BookPass.
-          </p>
-
-          <div className="mt-6 flex flex-col gap-3">
-            <Link
-              href={`/track?pass=${order.bookPass}`}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-control border border-border bg-surface px-6 text-button text-text transition-colors hover:bg-surface-muted"
-            >
-              Track Order
-            </Link>
-            <Link
-              href="/"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-control bg-brand px-6 text-button text-brand-on shadow-sm transition-colors hover:bg-brand-hover"
-            >
-              Continue Shopping
-            </Link>
-          </div>
-        </motion.div>
-      </div>
-    );
+    router.push(`/order/complete?bookPass=${order.bookPass}`);
+    return null;
   }
 
   // ── Payment form ──────────────────────────────────────────────────────

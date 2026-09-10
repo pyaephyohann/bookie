@@ -92,3 +92,11 @@ Do **not** claim a check passed unless it actually passed.
 - **File validation is server-side:** never trust client-side validation alone. The server checks MIME type and file size independently. Use JPEG/PNG/WEBP only; reject executables and oversized files.
 - **Base64 data URL storage is dev-only:** storing payment slips as data URLs in the database works for development but should be replaced by Cloudinary or similar in production. Document the migration path.
 - **Payment config via env vars:** merchant details (name, phone, QR URLs) are loaded from environment variables. Development uses safe placeholders. Never hard-code production credentials.
+
+## B7 learnings (order complete)
+
+- **Server-fetch, client-render:** the completion page (`/order/complete`) is a server component that fetches order + payment data from Prisma, then passes serialised props to a client component for interactivity (copy buttons, animations). Prisma never crosses into client components.
+- **Do not import Prisma enums in client components:** `PaymentStatusBadge` imports from `@/generated/prisma/client`, which fails in the browser chunk (Turbopack cannot resolve `node:module`). Use inline status class mapping in client components instead.
+- **Clipboard API with fallback:** use `navigator.clipboard.writeText()` with a try/catch. On failure, fall back to selecting the text element for manual copy. Show temporary "Copied!" feedback that resets after 2 seconds.
+- **Tracking link before B8:** the completion page shows a tracking URL pointing to the planned `/track?pass=XXX` route. This is intentional — the link is prepared for B8 even though the route does not exist yet.
+- **B6 → B7 redirect:** B6 payment success and already-paid states redirect to `/order/complete` via `router.push()`. This keeps B7 as the single source of truth for the post-payment experience.

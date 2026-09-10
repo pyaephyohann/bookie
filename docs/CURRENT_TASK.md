@@ -1,10 +1,10 @@
 # Current Task
 
-## B6 — Payment
+## B7 — Order Complete
 
 ### Objective
 
-Build the payment submission flow for an existing order — payment method selection (KPay / AYA Pay), payment instructions with QR area, payment slip upload with preview/replace/remove, and server-side payment record creation.
+Build the customer-facing Order Complete experience — a polished confirmation page after order/payment, centered around the BookPass with copy functionality, order summary, payment status, tracking link, and navigation.
 
 ### Status
 
@@ -12,74 +12,65 @@ Build the payment submission flow for an existing order — payment method selec
 
 ### What was done
 
-- Created `lib/payment.ts` — payment configuration helper (merchant info, method labels, file validation, allowed types/sizes)
-- Created `app/payment/actions.ts` — Server Action for payment submission:
-  - Validates payment method
-  - Validates uploaded file (type: JPEG/PNG/WEBP, size: max 5MB)
-  - Resolves existing order from database by BookPass
-  - Verifies order is eligible for payment (not cancelled/rejected/delivered)
-  - Checks existing payment state (prevents duplicate pending, updates existing pending)
-  - Converts file to base64 data URL for storage
-  - Creates Payment record with server-authoritative amount from Order.total
-  - Returns safe result (never exposes internal errors)
-- Created `app/payment/page.tsx` — Server component that fetches order by BookPass query param and renders PaymentClient
-- Created `app/payment/PaymentClient.tsx` — Client component:
-  - Payment method selection (KPay / AYA Pay) with visual cards
-  - Payment instructions with merchant name, phone, QR image area
-  - Payment slip upload with preview, replace, remove
-  - Order summary (BookPass, items, total)
-  - Submit button with loading state
-  - Success state (awaiting verification, BookPass, tracking link)
-  - Already-paid state handling
-  - Error display with clear messages
-- Modified `app/checkout/CheckoutClient.tsx` — Added "Pay Now" link in B5 success state
-- Updated `.env.example` — Added payment configuration env vars
+- Created `app/order/complete/page.tsx` — Server component that fetches order + payment data from Prisma by BookPass, renders the OrderCompleteClient
+- Created `app/order/complete/OrderCompleteClient.tsx` — Client component:
+  - Polished success header with animated checkmark
+  - BookPass display (prominent, selectable, with Copy button)
+  - Copy BookPass with clipboard API + fallback + temporary "Copied!" feedback
+  - Payment status badge (PENDING/VERIFIED/REJECTED)
+  - Payment method and amount display
+  - Order summary (items, quantities, totals)
+  - Shipping details (name, phone, address)
+  - Tracking link with copy button + "Open Tracking Page" link
+  - Continue Shopping + Track Order navigation
+  - Responsive layout (mobile/tablet/desktop)
+  - Light/dark/system theme support
+  - Reduced-motion animation support
+  - Accessible labels, keyboard interaction, focus states
+- Modified `app/payment/PaymentClient.tsx`:
+  - B6 success state now redirects to `/order/complete?bookPass=XXX`
+  - B6 "already paid" state now redirects to `/order/complete?bookPass=XXX`
+  - Removed in-component success/already-paid UI (moved to B7)
 
-### Payment Model Used
+### B7 Content
 
-The existing Prisma `Payment` model was used as-is — no schema changes required:
-- `orderId` → relation to Order
-- `method` → PaymentMethod enum (KPAY, AYAPAY)
-- `amount` → Decimal(12,2), server-calculated from Order.total
-- `status` → PaymentStatus enum, always PENDING after submission
-- `slipUrl` → stores payment slip as base64 data URL (dev strategy)
-- `createdAt` / `updatedAt` timestamps
+- Success indicator: animated green checkmark + "Thank you for your order!"
+- BookPass: prominent display with copy-to-clipboard
+- Payment status: badge + method + amount
+- Order summary: items, quantities, totals
+- Shipping details: name, phone, address
+- Tracking link: display + copy + open (points to planned B8 `/track` route)
+- Navigation: Continue Shopping + Track Order
 
-### Security
+### Payment Status Messaging
 
-- Server is the authoritative source for order existence, status, and amount
-- Client-supplied prices/totals are never accepted
-- Payment status is always PENDING after submission (never auto-verified)
-- File uploads validated server-side (type, size)
-- Duplicate payment protection (existing pending payment is updated, not duplicated)
-- Internal errors are never exposed to the client
+Accurate wording used throughout:
+- "Awaiting Verification" for PENDING payments
+- "Payment Verified" for VERIFIED payments
+- "Payment Rejected" for REJECTED payments
+- Never claims payment is verified unless the database says so
 
 ### Scope
 
-- [x] Payment page `/payment?bookPass=XXX`
-- [x] Payment method selection (KPay / AYA Pay)
-- [x] Payment instructions with merchant info + QR area
-- [x] Payment slip upload (select, preview, replace, remove)
-- [x] Server-side payment validation and record creation
-- [x] Success state (awaiting verification)
-- [x] Already-paid state handling
-- [x] Error handling
-- [x] B5 → B6 navigation (Pay Now link on checkout success)
-- [x] Responsive design (mobile/tablet/desktop)
+- [x] Order Complete page `/order/complete?bookPass=XXX`
+- [x] BookPass display with copy
+- [x] Payment status with badge
+- [x] Order summary (authoritative from DB)
+- [x] Shipping details
+- [x] Tracking link display + copy
+- [x] Navigation (Continue Shopping, Track Order)
+- [x] B6 → B7 redirect (payment success → completion page)
+- [x] Responsive design
 - [x] Light/dark theme support
-- [x] Accessibility (labels, keyboard, focus, aria)
+- [x] Accessibility
 
 ### Not in scope
 
-- B7 Order Complete redesign
-- B8 Order Tracking
+- B8 Order Tracking (tracking link points to planned `/track` route)
 - B9 Online Reader
-- Admin payment verification
+- Admin dashboard
 - Email/SMS notifications
-- Payment gateway/API integration
-- Automatic payment verification
-- Cloud-based file storage (currently uses base64 data URLs)
 
-## B7 — Order Complete
+## B8 — Order Tracking
 
-Has not started. Will begin when B7 is approved.
+Has not started. Will begin when B8 is approved.

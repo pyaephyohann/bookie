@@ -16,13 +16,15 @@ import { Navbar } from "@/components/navigation/Navbar";
 export function SiteChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isReader = /^\/books\/[^/]+\/read$/.test(pathname ?? "");
+  const isAdmin = (pathname ?? "").startsWith("/admin");
+  const hideChrome = isReader || isAdmin;
 
   return (
     <>
-      {!isReader && <Navbar />}
+      {!hideChrome && <Navbar />}
       {children}
-      {!isReader && <Footer />}
-      {!isReader && <FloatingCart />}
+      {!hideChrome && <Footer />}
+      {!hideChrome && <FloatingCart />}
     </>
   );
 }

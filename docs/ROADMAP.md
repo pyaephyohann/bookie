@@ -1,6 +1,8 @@
-# Bookie — User App Roadmap
+# Bookie — Roadmap
 
-The Bookie user-facing application is delivered in exactly 10 milestones. This is the high-level roadmap, not a task tracker.
+The Bookie project is delivered in milestones across the User App and Admin App. This is the high-level roadmap, not a task tracker.
+
+## User App
 
 | # | Milestone | Focus |
 |---|---|---|
@@ -15,6 +17,17 @@ The Bookie user-facing application is delivered in exactly 10 milestones. This i
 | B9 | **Online Reading** | ✅ Completed — real reader at `/books/[slug]/read` with BookContent HTML/text rendering (PDF embed / EPUB file fallback), font size + reading width controls, scroll progress, localStorage reading position, distraction-free chrome, unavailable states, B3 entry point wired |
 | B10 | **Production Polish** | Performance, SEO, accessibility, deployment hardening |
 
-Out of scope for the user app: admin dashboard, POS, and inventory management (separate concerns backed by the same database schema).
+## Admin App
+
+| # | Milestone | Focus |
+|---|---|---|
+| A1 | **Admin Foundation** | 🔒 Locked — Admin auth (scrypt + HMAC session cookie), server-side `requireAdmin()` authorization, `/admin` shell (sidebar + navbar + profile menu), dashboard shell, settings shell, login page, loading/error/not-found states, SiteChrome admin route handling, bootstrap script, documentation |
+| A2 | **Dashboard & Analytics** | 🚧 In Progress — KPI analytics, revenue charts, order charts, category breakdowns, payment analytics, inventory analytics |
+| A3 | **Catalog Management** | ⏳ Books, authors, categories, publishers CRUD |
+| A4 | **Inventory Management** | ⏳ Stock levels, restock, adjustments, damage tracking |
+| A5 | **Order Management** | ⏳ Order list, detail, status updates, timeline management |
+| A6 | **Payment Management** | ⏳ Payment verification, approval/rejection, slip review |
+| A7 | **Content Management** | ⏳ Reading content upload, featured books, promotions, banners |
+| A8 | **Admin Polish** | ⏳ Performance, accessibility, deployment hardening |
 
 Current milestone: see `docs/CURRENT_TASK.md`.

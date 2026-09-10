@@ -121,3 +121,14 @@ Do **not** claim a check passed unless it actually passed.
 - **No chapters in the schema:** `BookContent` is a single content blob — do not invent chapter/section navigation. The reader is a continuous scroll with scroll progress instead.
 - **Chrome hiding:** hide Navbar/Footer/FloatingCart on reader routes with a `usePathname`-based client wrapper (`SiteChrome`) — same server/client output, so no hydration risk.
 - **File-based content:** PDF renders in an iframe with a fallback link; EPUB/OTHER can't render natively in the browser — show a download-style card rather than adding a rendering dependency.
+
+## A1 learnings (admin foundation)
+
+- **No new auth dependencies:** `node:crypto` provides everything needed — `scrypt` for password hashing, `createHmac` for session signing, `randomBytes` for salts. No bcrypt/argon2 library needed.
+- **HMAC-signed cookies for sessions:** the session is a signed JSON payload (`{ userId }`) stored in an httpOnly cookie. No session table, no JWT library, no Redis. The signature prevents tampering; the cookie prevents CSRF (sameSite=lax).
+- **Server-side authorization only:** `requireAdmin()` runs in server components/layouts. It reads the session cookie, validates the user exists and is active, checks the role, and redirects to `/admin/login` if unauthorized. No client-side role checks.
+- **Prisma schema already supports admin:** the existing `User` model with `UserRole` enum (ADMIN/STAFF), `passwordHash`, `email`, and `isActive` is sufficient. No schema changes needed.
+- **Admin chrome is separate from store chrome:** `SiteChrome` hides the Navbar/Footer/FloatingCart on `/admin` routes. The admin shell (`AdminShell`) provides its own sidebar + navbar. This is the same pattern used for the reader (`/books/[slug]/read`).
+- **Navigation "Soon" badges:** unimplemented admin routes show "Soon" badges rather than placeholder pages. This avoids misleading functionality while keeping the navigation structure visible for A2–A8.
+- **`useActionState` for login forms:** Next.js App Router's `useActionState` (React 19) provides pending state and error handling for server actions without manual state management.
+- **Admin route groups:** `(dashboard)` route group keeps admin pages under a shared layout without affecting the URL path. The login page sits outside this group so it doesn't require auth.

@@ -14,7 +14,7 @@ This document describes the architecture **as it actually exists**. Items that a
 - **Prisma 7.10** + **PostgreSQL** — data layer (`prisma-client` generator, `@prisma/adapter-pg` driver adapter)
 - **@fontsource-variable/scoutie-sans** — primary UI font (self-hosted); **Caveat** via `next/font/google` (decorative)
 
-## Route structure (CURRENT — B9)
+## Route structure (CURRENT — A1)
 
 ```
 app/
@@ -41,8 +41,17 @@ app/
   track/page.tsx             Order Tracking — BookPass lookup + status timeline (B8)
   track/TrackOrderClient.tsx Client-side tracking experience
   design-system/page.tsx  Internal reference page for design-token QA
-  layout.tsx wraps children in `SiteChrome`, which hides Navbar/Footer/FloatingCart on reader routes
-  components/layout/SiteChrome.tsx  Client shell — chrome hidden on `/books/[slug]/read`
+  layout.tsx wraps children in `SiteChrome`, which hides Navbar/Footer/FloatingCart on reader and admin routes
+  components/layout/SiteChrome.tsx  Client shell — chrome hidden on `/books/[slug]/read` and `/admin`
+  admin/login/page.tsx      Admin login (public)
+  admin/login/LoginForm.tsx Client-side login form
+  admin/actions.ts          Server Actions — login, logout, getCurrentAdmin
+  admin/(dashboard)/layout.tsx  Admin shell — auth-gated, sidebar + navbar
+  admin/(dashboard)/page.tsx    Dashboard shell (placeholder for A2)
+  admin/(dashboard)/settings/   Settings shell
+  admin/(dashboard)/loading.tsx Skeleton loading state
+  admin/(dashboard)/error.tsx   Error boundary
+  admin/(dashboard)/not-found.tsx  404 page
 ```
 
 All pages are server components; interactive pieces are isolated in `"use client"` components. Dynamic routes (`[slug]`) are server-rendered on demand; index pages are statically prerendered.
@@ -56,6 +65,8 @@ components/
   cart/         CartContext (client state), FloatingCart
   navigation/   Navbar, CategoryMegaMenu (desktop), SearchCommand (⌘K palette), Footer
   theme/        ThemeContext (light/dark/system), ThemeToggle
+  layout/       SiteChrome (hides store chrome on reader + admin routes)
+  admin/        AdminShell, AdminSidebar, AdminNavbar, AdminProfileMenu, AdminPageHeader, AdminCard — A1
   landing/      Hero, HeroSlider, TrendingBooks, BestSellers, NewReleases, Promotions,
                 CategoryShowcase, PopularAuthors, RecommendedBooks, ReadingFeature,
                 BookPassFeature, FinalCTA
@@ -199,6 +210,21 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - Scroll-triggered reveals use `whileInView` + `viewportOnce`.
 - Global `prefers-reduced-motion` handling: CSS guard in `globals.css` + `useReducedMotion()` gates in every animated component.
 - Durations are kept short (150–500ms) per the design direction.
+
+## Admin App (CURRENT — A1)
+
+- **Authentication:** `lib/auth.ts` — `node:crypto` scrypt password hashing, HMAC-SHA256 signed session cookie (`bookie_admin_session`), `requireAdmin()` server-side authorization helper. No auth library dependencies.
+- **Session:** httpOnly cookie with signed JSON payload (`{ userId }`). 7-day expiry. `sameSite: lax` for CSRF protection.
+- **Authorization:** `requireAdmin()` runs in server components/layouts. Reads session cookie, validates user exists and is active, checks role (ADMIN or STAFF), redirects to `/admin/login` if unauthorized. No client-side role checks.
+- **Admin shell:** `AdminShell` composes `AdminSidebar` (persistent on desktop, drawer on mobile) + `AdminNavbar` (sticky top bar with sidebar trigger, branding, ThemeToggle, profile menu) + content area.
+- **Navigation:** organized by section (Dashboard, Catalog, Inventory, Orders, Payments, Content, Analytics, Settings). Unimplemented routes show "Soon" badges.
+- **SiteChrome:** hides Navbar/Footer/FloatingCart on `/admin` routes — same pattern as reader routes.
+- **Login:** `/admin/login` — public route with `LoginForm` using `useActionState` for pending/error states.
+- **Dashboard:** `/admin` — shell with placeholder KPI cards and section stubs ready for A2 analytics.
+- **Settings:** `/admin/settings` — shell with Admin Account, Appearance, Security sections.
+- **Bootstrap:** `scripts/create-admin.mjs` — interactive script to create or promote admin users.
+- **Environment:** `BOOKIE_AUTH_SECRET` — HMAC signing key for session cookies.
+- **Prisma schema:** unchanged — existing `User` model with `UserRole` enum (ADMIN/STAFF) is sufficient.
 
 ## Conventions
 

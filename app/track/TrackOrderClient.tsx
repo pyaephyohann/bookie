@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { METHOD_LABELS, type PaymentMethod } from "@/lib/payment";
@@ -135,11 +135,11 @@ export function TrackOrderClient({
   const [searching, setSearching] = useState(false);
   const [copiedBookPass, setCopiedBookPass] = useState(false);
   const [copiedTrackingLink, setCopiedTrackingLink] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const trackingUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/track?pass=${order?.bookPass}`
-      : `/track?pass=${order?.bookPass}`;
+  // Canonical relative URL — stable across server render and client hydration
+  // (an absolute URL is built only inside the copy handler where `window` exists).
+  const trackingUrl = order ? `/track?pass=${encodeURIComponent(order.bookPass)}` : "";
 
   // ── Lookup ─────────────────────────────────────────────────────────────
 
@@ -176,8 +176,11 @@ export function TrackOrderClient({
 
   const copyTrackingLink = useCallback(async () => {
     if (!order) return;
+    // Build the shareable absolute URL only here, in an event handler,
+    // so rendering never depends on `window` (avoids hydration mismatch).
+    const absoluteUrl = `${window.location.origin}/track?pass=${encodeURIComponent(order.bookPass)}`;
     try {
-      await navigator.clipboard.writeText(trackingUrl);
+      await navigator.clipboard.writeText(absoluteUrl);
       setCopiedTrackingLink(true);
     } catch {
       const el = document.getElementById("tracking-link-value");
@@ -189,7 +192,7 @@ export function TrackOrderClient({
         sel?.addRange(range);
       }
     }
-  }, [order, trackingUrl]);
+  }, [order]);
 
   useEffect(() => {
     if (!copiedBookPass) return;
@@ -274,6 +277,7 @@ export function TrackOrderClient({
               BookPass
             </label>
             <Input
+              ref={inputRef}
               id="bookpass-input"
               type="text"
               value={pass}
@@ -615,7 +619,8 @@ export function TrackOrderClient({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setPass(order.bookPass);
+                  setPass("");
+                  inputRef.current?.focus();
                 }}
               >
                 <PackageSearch className="size-3.5" aria-hidden />

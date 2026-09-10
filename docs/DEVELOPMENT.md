@@ -98,7 +98,7 @@ Do **not** claim a check passed unless it actually passed.
 - **Server-fetch, client-render:** the completion page (`/order/complete`) is a server component that fetches order + payment data from Prisma, then passes serialised props to a client component for interactivity (copy buttons, animations). Prisma never crosses into client components.
 - **Do not import Prisma enums in client components:** `PaymentStatusBadge` imports from `@/generated/prisma/client`, which fails in the browser chunk (Turbopack cannot resolve `node:module`). Use inline status class mapping in client components instead.
 - **Clipboard API with fallback:** use `navigator.clipboard.writeText()` with a try/catch. On failure, fall back to selecting the text element for manual copy. Show temporary "Copied!" feedback that resets after 2 seconds.
-- **Tracking link before B8:** the completion page shows a tracking URL pointing to the planned `/track?pass=XXX` route. This is intentional — the link is prepared for B8 even though the route does not exist yet.
+- **Tracking link:** the completion page shows a tracking URL pointing to the `/track?pass=XXX` route (B8).
 - **B6 → B7 redirect:** B6 payment success and already-paid states redirect to `/order/complete` via `router.push()`. This keeps B7 as the single source of truth for the post-payment experience.
 
 ## B8 learnings (order tracking)
@@ -107,6 +107,7 @@ Do **not** claim a check passed unless it actually passed.
 - **Normalize the BookPass server-side:** trim + uppercase before the Prisma `findUnique` on `Order.bookPass`. The client form applies the same normalization for consistent round-trips.
 - **Timeline from real history, never fabricated:** derive completed steps from `OrderStatusHistory` + the authoritative `Order.status`. A step is completed when it is in history or strictly before the current status. Do not invent history entries on the client.
 - **Terminal states are not steps:** `REJECTED`/`CANCELLED` get their own banner and only the history steps that actually happened are listed above them — never render future success steps as upcoming/completed for a dead order.
+- **Hydration-safe URLs:** never build a display URL from `window` during render (server HTML would differ from client hydration). Display the canonical relative URL (`/track?pass=...`) and construct the absolute URL only inside the copy event handler where `window` exists. `lib/cart.ts`-style `useSyncExternalStore` snapshots follow the same rule for state.
 - **UTC-fixed date formatting:** use `toLocaleString` with an explicit `timeZone: "UTC"` so server-render and client hydration produce identical strings.
 - **Minimal data exposure on public pages:** the tracking page passes only items, totals, statuses, and payment method/amount/status to the client. Customer contact fields (phone, email, shipping address) are not selected at all.
 - **Footer placeholder links:** B1-era `#/route` hash placeholders in the Footer are not real routes; when a milestone makes a route real, update the corresponding footer entry to a `next/link` `Link` (plain `<a>` to a real route trips `no-html-link-for-pages`).

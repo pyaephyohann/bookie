@@ -239,7 +239,7 @@ Reusable patterns added for Home & Discovery. All follow the token system above 
 - URL displayed in a bordered container (selectable)
 - Copy Tracking Link button
 - Open Tracking Link (external link icon)
-- Points to planned `/track?pass=XXX` route (B8)
+- Points to the `/track?pass=XXX` route (B8)
 
 ### Navigation
 

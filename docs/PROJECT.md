@@ -28,8 +28,9 @@ Home
 → Cart
 → Checkout
 → Customer information
-→ Payment
+→ Payment (KPay / AYA Pay)
 → Payment slip upload
+→ Awaiting verification
 → Order complete
 → BookPass
 → Track order
@@ -75,9 +76,9 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Search backend | ✅ | `/search?q=...` — real Prisma search by title, author, category, ISBN |
 | Wishlist | ✅ | Client-side localStorage, SSR-safe, toggle from book cards and detail pages |
 | Cart page | 🧭 | B4 — Cart |
-| Checkout + customer information | 🧭 | B5 — Checkout |
-| Payment (KPay / AYA Pay) | 🧭 | B6 — Payment |
-| Payment slip upload | 🧭 | B6 |
+| Checkout + customer information | ✅ | B5 — Checkout |
+| Payment (KPay / AYA Pay) | ✅ | B6 — Payment |
+| Payment slip upload | ✅ | B6 |
 | BookPass generation | 🧭 | B7 — Order Complete |
 | Order tracking page | 🧭 | B8 — Order Tracking |
 | Online reading (reader) | 🧭 | B9 — Online Reading |

@@ -144,16 +144,22 @@ export function CheckoutClient() {
 
           <div className="mt-6 flex flex-col gap-3">
             <Link
-              href="/"
+              href={`/payment?bookPass=${result.bookPass}`}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-control bg-brand px-6 text-button text-brand-on shadow-sm transition-colors hover:bg-brand-hover"
             >
-              Continue Shopping
+              Pay Now
             </Link>
             <Link
               href={`/track?pass=${result.bookPass}`}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-control border border-border bg-surface px-6 text-button text-text transition-colors hover:bg-surface-muted"
             >
               Track Order
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-control border border-border bg-surface px-6 text-button text-text transition-colors hover:bg-surface-muted"
+            >
+              Continue Shopping
             </Link>
           </div>
         </motion.div>

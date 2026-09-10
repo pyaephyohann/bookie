@@ -83,3 +83,12 @@ Do **not** claim a check passed unless it actually passed.
 - **Cart clearing:** the cart is only cleared after the server confirms successful order creation. Failed orders leave the cart intact for retry.
 - **BookPass generation:** unique order reference (`ORD-YYYY-XXXX`) is generated server-side with collision checking. The client never generates order identifiers.
 - **Zod for validation:** `lib/checkout.ts` defines the Zod schema shared between client and server. Client validates immediately; server re-validates to prevent tampering.
+
+## B6 learnings (payment submission)
+
+- **Server-authoritative amount:** the payment amount is always read from the database Order, never from client-submitted data. The client sends only `bookPass`, `method`, and `slipFile`.
+- **Payment status is PENDING after submission:** uploading a slip means "customer claims payment was made", not "payment verified". Never mark payment as VERIFIED or CONFIRMED during customer submission.
+- **Duplicate submission protection:** if an order already has a PENDING payment, B6 updates the existing payment record instead of creating a new one. VERIFIED payments are rejected outright.
+- **File validation is server-side:** never trust client-side validation alone. The server checks MIME type and file size independently. Use JPEG/PNG/WEBP only; reject executables and oversized files.
+- **Base64 data URL storage is dev-only:** storing payment slips as data URLs in the database works for development but should be replaced by Cloudinary or similar in production. Document the migration path.
+- **Payment config via env vars:** merchant details (name, phone, QR URLs) are loaded from environment variables. Development uses safe placeholders. Never hard-code production credentials.

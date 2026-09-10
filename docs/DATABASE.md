@@ -86,3 +86,16 @@ B5 introduced the first write operations, all via a single Prisma `$transaction`
 - **Book lookup:** books fetched by ID + `status = PUBLISHED` to validate orderability and obtain authoritative prices.
 
 No schema changes were required — the existing models fully support guest checkout, order snapshots, and inventory tracking.
+
+## B6 usage (CURRENT — writes, no schema change)
+
+B6 introduced payment submission, all server-side via `app/payment/actions.ts`:
+
+- **Payment creation:** new `Payment` record linked to an existing Order:
+  - `method`: KPAY or AYAPAY (from customer selection)
+  - `amount`: server-calculated from `Order.total` (never client-submitted)
+  - `status`: always `PENDING` after customer submission
+  - `slipUrl`: payment slip stored as base64 data URL (dev strategy)
+- **Duplicate protection:** if an order already has a PENDING payment, the existing record is updated (method + slipUrl) instead of creating a new one. VERIFIED payments prevent any further submission.
+- **Order eligibility check:** order must exist, must not be CANCELLED/REJECTED/DELIVERED.
+- **No schema changes** — the existing `Payment` model fully supports the B6 requirements.

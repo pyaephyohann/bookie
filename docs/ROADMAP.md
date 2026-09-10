@@ -9,7 +9,7 @@ The Bookie user-facing application is delivered in exactly 10 milestones. This i
 | B3 | **Books** | ✅ Completed — book detail, categories index/detail, authors index/detail, search, wishlist, recently-viewed recording, real routes replacing placeholders |
 | B4 | **Cart** | ✅ Completed — localStorage cart store, `/cart` page, quantity controls, order summary, real Add to Cart integration across BookCard/BookDetail/NewReleases/FloatingCart/Navbar |
 | B5 | **Checkout** | ✅ Completed — guest checkout with Zod validation, server-authoritative pricing, Prisma transaction (Order + OrderItems + OrderStatusHistory + InventoryTransaction), BookPass generation, empty cart protection, double-submit protection |
-| B6 | **Payment** | KPay / AYA Pay, payment slip upload, verification flow |
+| B6 | **Payment** | ✅ Completed — KPay / AYA Pay payment method selection, payment instructions with QR area, payment slip upload (preview/replace/remove), server-side payment record creation, PENDING verification status, duplicate submission protection |
 | B7 | **Order Complete** | BookPass generation, order-confirmation experience |
 | B8 | **Order Tracking** | Track orders by BookPass, status timeline |
 | B9 | **Online Reading** | In-app book reader for readable books |

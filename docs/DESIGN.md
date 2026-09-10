@@ -169,3 +169,35 @@ Reusable patterns added for Home & Discovery. All follow the token system above 
 - Navbar: Authors → `/authors`, Categories mega-menu → `/categories/[slug]`.
 - Hero slider, BestSellers, CategoryShowcase, PopularAuthors all use real links.
 - FloatingCart → `/cart`.
+
+## Payment (B6)
+
+### Payment method selector
+
+- Two-option card grid (KPay, AYA Pay) with `aria-pressed` state
+- Active method: brand-yellow border + muted background, icon gets brand background
+- Inactive method: neutral border, muted icon
+- Keyboard accessible, clear visual state
+
+### Payment instructions
+
+- Merchant name and phone number from config (env vars with dev placeholders)
+- QR image area when configured; dashed placeholder when not
+- Responsive: stacked on mobile, side-by-side on desktop
+
+### Payment slip upload
+
+- Dashed border upload zone with icon and instructions
+- File input (sr-only, label triggers it)
+- Preview: aspect-ratio video container, file name, size
+- Replace/Remove buttons in preview footer
+- Client-side pre-validation (type, size) before server validation
+- AnimatePresence for smooth transitions between states
+
+### Payment states
+
+- **Idle:** form visible, submit disabled until slip uploaded
+- **Submitting:** button shows spinner, disabled
+- **Success:** green checkmark, "Awaiting Verification", BookPass, tracking link
+- **Already paid:** CreditCard icon, "Payment Already Submitted"
+- **Error:** red alert banner with AlertCircle icon

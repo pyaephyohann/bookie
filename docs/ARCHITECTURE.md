@@ -32,6 +32,9 @@ app/
   checkout/page.tsx       Guest checkout — customer form + order summary
   checkout/actions.ts     Server Action — order creation (Prisma transaction)
   checkout/CheckoutClient.tsx  Client-side checkout form
+  payment/page.tsx         Payment — order summary + slip upload (B6)
+  payment/actions.ts       Server Action — payment submission
+  payment/PaymentClient.tsx  Client-side payment form
   design-system/page.tsx  Internal reference page for design-token QA
 ```
 
@@ -97,6 +100,23 @@ The boundary is intentional: data crosses from server to client as serialisable 
 - **Cart boundary:** cart is only cleared after successful order creation. Failed orders leave the cart intact for retry.
 - **`CheckoutClient.tsx`:** client component with the form UI, inline validation, server error display, double-submit protection, empty cart guard, and success state showing the BookPass.
 
+## Payment (CURRENT — B6)
+
+- **Route:** `/payment?bookPass=XXX` — query parameter carries the customer-safe BookPass identifier.
+- **Server component:** `app/payment/page.tsx` — fetches the order by `bookPass`, includes items and payment state, passes serialised data to the client component.
+- **Server Action:** `app/payment/actions.ts` — `submitPayment({ bookPass, method, slipFile })`:
+  1. Validates payment method (KPAY/AYA_PAY)
+  2. Validates uploaded file (MIME type + size)
+  3. Resolves order from database by BookPass
+  4. Verifies order is eligible for payment
+  5. Checks for existing pending payment (updates instead of duplicating)
+  6. Converts file to base64 data URL
+  7. Creates Payment record with server-authoritative amount from `Order.total`
+  8. Returns safe result
+- **Client component:** `app/payment/PaymentClient.tsx` — payment method selection, instructions with merchant info + QR area, slip upload with preview/replace/remove, order summary, submit with loading/success states.
+- **Config:** `lib/payment.ts` — merchant info loaded from env vars (`BOOKIE_PAYMENT_*`), dev placeholders when missing.
+- **Security:** server-authoritative amount, order eligibility check, file validation, duplicate submission protection, payment always starts as PENDING (never auto-verified).
+
 ## Utilities (CURRENT — B3)
 
 - `lib/data.ts` — server-only data layer: shared UI types + Prisma queries + mock fallback (see *Home data flow* + B3 query functions).
@@ -115,9 +135,15 @@ The boundary is intentional: data crosses from server to client as serialisable 
 - **Home queries (CURRENT):** `lib/data.ts` reads `PUBLISHED` books (with first category/author), categories with book counts, authors with book counts, `FeaturedBook` rows per section (TRENDING / BEST_SELLER / RECOMMENDED), and active `Promotion` rows with their linked books. Promotions are applied as price adjustments (percentage/fixed) before display.
 - **B3 queries (CURRENT):** `getBookBySlug(slug)` — full book detail with all authors and categories. `getCategoryBySlug(slug)` / `getAuthorBySlug(slug)` — detail with related books. `getAllCategories()` / `getAllAuthors()` — index lists. `searchBooks(query)` — full-text search by title, author, category name, ISBN. All follow the same try-Prisma-then-fallback-to-mock pattern. Prisma is only ever imported on the server — never in client components. `PLANNED:` migrations, seed strategy.
 
-## File / upload handling (CURRENT)
+## File / upload handling (CURRENT — B6)
 
-None in the user app. `PLANNED:` payment slip upload (B6) via `slipUrl` in the `Payment` model.
+Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field. This is a development-friendly strategy that avoids external dependencies. Production should migrate to Cloudinary, S3, or a similar storage provider.
+
+- Client: FileReader → blob preview via `URL.createObjectURL()`
+- Server: `File.arrayBuffer()` → `Buffer` → base64 data URL → stored in `slipUrl`
+- Validation: MIME type check (JPEG/PNG/WEBP), size limit (5 MB) — both client and server
+
+`PLANNED:` production file storage (Cloudinary or similar) for payment slips.
 
 ## Theme architecture (CURRENT)
 

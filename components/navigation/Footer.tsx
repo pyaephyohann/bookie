@@ -1,4 +1,5 @@
 import { AtSign, BookOpen, Mail, MessageCircle, Play } from "lucide-react";
+import Link from "next/link";
 
 const EXPLORE = [
   { label: "Books", href: "#/books" },
@@ -9,7 +10,7 @@ const EXPLORE = [
 ];
 
 const HELP = [
-  { label: "Track Order", href: "#/track" },
+  { label: "Track Order", href: "/track" },
   { label: "Shipping", href: "#/help/shipping" },
   { label: "Contact", href: "#/help/contact" },
   { label: "FAQ", href: "#/help/faq" },
@@ -90,12 +91,21 @@ function FooterColumn({
       <ul className="mt-3 space-y-2.5">
         {links.map((link) => (
           <li key={link.label}>
-            <a
-              href={link.href}
-              className="text-body-sm text-text-secondary transition-colors hover:text-text"
-            >
-              {link.label}
-            </a>
+            {link.href.startsWith("/") ? (
+              <Link
+                href={link.href}
+                className="text-body-sm text-text-secondary transition-colors hover:text-text"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                href={link.href}
+                className="text-body-sm text-text-secondary transition-colors hover:text-text"
+              >
+                {link.label}
+              </a>
+            )}
           </li>
         ))}
       </ul>

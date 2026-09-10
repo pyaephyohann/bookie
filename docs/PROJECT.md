@@ -36,7 +36,7 @@ Home
 → Track order
 ```
 
-## Order status flow (planned)
+## Order status flow
 
 ```
 Order Placed (PLACED)
@@ -46,7 +46,9 @@ Order Placed (PLACED)
 → Delivered (DELIVERED)
 ```
 
-`REJECTED` is a possible terminal/error state after order placement or payment verification. `CANCELLED` is also modeled.
+✅ Displayed to customers on the B8 `/track` page (timeline driven by real `OrderStatusHistory`). 🧭 The admin-side workflow that advances statuses is not part of the user app.
+
+`REJECTED` is a terminal/error state after order placement or payment verification; `CANCELLED` is also modeled. Both render as distinct terminal states on the tracking page — never as timeline steps.
 
 ## Feature inventory
 
@@ -80,7 +82,7 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Payment (KPay / AYA Pay) | ✅ | B6 — Payment |
 | Payment slip upload | ✅ | B6 |
 | BookPass generation | ✅ | B7 — Order Complete |
-| Order tracking page | 🧭 | B8 — Order Tracking |
+| Order tracking page | ✅ | B8 — Order Tracking — `/track` BookPass lookup, status timeline (history-backed), terminal Rejected/Cancelled states, order + payment summary, copy BookPass / tracking link |
 | Online reading (reader) | 🧭 | B9 — Online Reading |
 | Admin / POS / inventory | 🧭 | Not in the user-app roadmap |
 

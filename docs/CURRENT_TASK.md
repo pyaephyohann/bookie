@@ -1,10 +1,10 @@
 # Current Task
 
-## B7 — Order Complete
+## B8 — Order Tracking
 
 ### Objective
 
-Build the customer-facing Order Complete experience — a polished confirmation page after order/payment, centered around the BookPass with copy functionality, order summary, payment status, tracking link, and navigation.
+Build the customer-facing order tracking experience — customers enter their BookPass and see the current state of their order.
 
 ### Status
 
@@ -12,65 +12,53 @@ Build the customer-facing Order Complete experience — a polished confirmation 
 
 ### What was done
 
-- Created `app/order/complete/page.tsx` — Server component that fetches order + payment data from Prisma by BookPass, renders the OrderCompleteClient
-- Created `app/order/complete/OrderCompleteClient.tsx` — Client component:
-  - Polished success header with animated checkmark
-  - BookPass display (prominent, selectable, with Copy button)
-  - Copy BookPass with clipboard API + fallback + temporary "Copied!" feedback
-  - Payment status badge (PENDING/VERIFIED/REJECTED)
-  - Payment method and amount display
-  - Order summary (items, quantities, totals)
-  - Shipping details (name, phone, address)
-  - Tracking link with copy button + "Open Tracking Page" link
-  - Continue Shopping + Track Order navigation
-  - Responsive layout (mobile/tablet/desktop)
-  - Light/dark/system theme support
-  - Reduced-motion animation support
-  - Accessible labels, keyboard interaction, focus states
-- Modified `app/payment/PaymentClient.tsx`:
-  - B6 success state now redirects to `/order/complete?bookPass=XXX`
-  - B6 "already paid" state now redirects to `/order/complete?bookPass=XXX`
-  - Removed in-component success/already-paid UI (moved to B7)
+- Created `app/track/page.tsx` — Server component:
+  - Reads `pass` from the query string and normalizes it (trim + uppercase)
+  - Fetches the order from Prisma by BookPass (items, latest payment, status history)
+  - Renders the lookup form when no BookPass is provided
+  - Renders the friendly not-found state for invalid BookPasses (no raw DB errors ever leak)
+- Created `app/track/TrackOrderClient.tsx` — Client component:
+  - BookPass lookup form (accessible label, normalized submission, searching state)
+  - Status timeline driven by the **actual** `OrderStatusHistory` records (never fabricated)
+  - Terminal Rejected/Cancelled states — visually distinct, no future success steps shown
+  - Order summary (items, quantities, subtotal/shipping/total — all from the DB)
+  - Payment status (PENDING/VERIFIED/REJECTED) with method and amount
+  - Copy BookPass + Copy Tracking Link with clipboard fallback and "Copied!" feedback
+  - "Check Another Order" + Continue Shopping navigation
+  - Responsive layout, light/dark/system themes, reduced-motion support, keyboard-accessible
+- Updated `components/navigation/Footer.tsx`:
+  - "Track Order" placeholder link changed from `#/track` to the real `/track` route (via `next/link`)
 
-### B7 Content
+### Timeline behavior
 
-- Success indicator: animated green checkmark + "Thank you for your order!"
-- BookPass: prominent display with copy-to-clipboard
-- Payment status: badge + method + amount
-- Order summary: items, quantities, totals
-- Shipping details: name, phone, address
-- Tracking link: display + copy + open (points to planned B8 `/track` route)
-- Navigation: Continue Shopping + Track Order
-
-### Payment Status Messaging
-
-Accurate wording used throughout:
-- "Awaiting Verification" for PENDING payments
-- "Payment Verified" for VERIFIED payments
-- "Payment Rejected" for REJECTED payments
-- Never claims payment is verified unless the database says so
+- Successful lifecycle: `PLACED → CONFIRMED → PREPARING → SHIPPED → DELIVERED`
+- A step is marked completed only when it exists in the real `OrderStatusHistory` or lies strictly before the authoritative current `Order.status`
+- `REJECTED` / `CANCELLED` are terminal: they show the history steps that actually happened plus a distinct terminal banner — future success statuses are never shown as completed
+- No customer-identifying data (phone, email, address) is exposed — only order items, totals, and statuses
 
 ### Scope
 
-- [x] Order Complete page `/order/complete?bookPass=XXX`
-- [x] BookPass display with copy
-- [x] Payment status with badge
-- [x] Order summary (authoritative from DB)
-- [x] Shipping details
-- [x] Tracking link display + copy
-- [x] Navigation (Continue Shopping, Track Order)
-- [x] B6 → B7 redirect (payment success → completion page)
-- [x] Responsive design
-- [x] Light/dark theme support
-- [x] Accessibility
+- [x] `/track` BookPass lookup UI
+- [x] Server-side order lookup by BookPass (Prisma, never client data)
+- [x] Status timeline from real status history
+- [x] Terminal Rejected / Cancelled states
+- [x] Order summary (authoritative totals)
+- [x] Payment status display
+- [x] Copy BookPass + Copy Tracking Link
+- [x] Navbar / Footer / B7 links wired to the real route
+- [x] Responsive, themed, accessible
 
 ### Not in scope
 
-- B8 Order Tracking (tracking link points to planned `/track` route)
-- B9 Online Reader
-- Admin dashboard
-- Email/SMS notifications
+- Admin order/payment management
+- Email / SMS notifications
+- B9 Online Reading
+- B10 production polish
 
-## B8 — Order Tracking
+## B9 — Online Reading
 
-Has not started. Will begin when B8 is approved.
+Has not started. Will begin when B9 is approved.
+
+## Next milestone
+
+**B9 — Online Reading**

@@ -14,7 +14,7 @@ This document describes the architecture **as it actually exists**. Items that a
 - **Prisma 7.10** + **PostgreSQL** — data layer (`prisma-client` generator, `@prisma/adapter-pg` driver adapter)
 - **@fontsource-variable/scoutie-sans** — primary UI font (self-hosted); **Caveat** via `next/font/google` (decorative)
 
-## Route structure (CURRENT — B7)
+## Route structure (CURRENT — B8)
 
 ```
 app/
@@ -37,6 +37,8 @@ app/
   payment/PaymentClient.tsx  Client-side payment form
   order/complete/page.tsx    Order Complete — polished confirmation page (B7)
   order/complete/OrderCompleteClient.tsx  Client-side completion experience
+  track/page.tsx             Order Tracking — BookPass lookup + status timeline (B8)
+  track/TrackOrderClient.tsx Client-side tracking experience
   design-system/page.tsx  Internal reference page for design-token QA
 ```
 
@@ -133,6 +135,16 @@ The boundary is intentional: data crosses from server to client as serialisable 
   - Navigation: Continue Shopping + Track Order
 - **B6 integration:** B6 `PaymentClient.tsx` redirects to `/order/complete` after successful payment submission and when an existing pending payment is detected.
 - **Security:** order data fetched server-side from database by BookPass. No client-supplied data trusted for order/payment state.
+
+## Order Tracking (CURRENT — B8)
+
+- **Route:** `/track?pass=XXX` — query parameter carries the customer-safe BookPass identifier. The Navbar "Track Order" links, the Footer "Track Order" link, and B7's Track Order / tracking-link actions all point here.
+- **Server component:** `app/track/page.tsx` — reads `pass` from the query string, normalizes it (trim + uppercase), and looks the order up by `Order.bookPass`. When no `pass` is present it renders the lookup form only; when the order is missing it renders a friendly not-found state (database errors are caught and never leaked).
+- **Server Action:** none — the tracking page is a read-only server-rendered page. The client form navigates to `/track?pass=...`; no mutation layer exists.
+- **Client component:** `app/track/TrackOrderClient.tsx` — lookup form, status timeline, order summary, payment status, and copy actions.
+- **Timeline data:** `OrderStatusHistory` rows (ordered by `createdAt`) drive the timeline; the current status comes from `Order.status`. Lifecycle steps are completed only when present in history or strictly before the current status — never fabricated. `REJECTED` / `CANCELLED` render as distinct terminal states (history steps actually taken + a terminal banner; no future success steps).
+- **Data exposure:** only order items, quantities, subtotal/shipping/total, statuses, and payment method/amount/status are passed to the client. Customer contact fields (phone, email, shipping address) are never selected.
+- **Security:** server-authoritative lookup by BookPass; no client-submitted order data is trusted; no Prisma code crosses into client components.
 
 ## Utilities (CURRENT — B3)
 

@@ -99,3 +99,14 @@ B6 introduced payment submission, all server-side via `app/payment/actions.ts`:
 - **Duplicate protection:** if an order already has a PENDING payment, the existing record is updated (method + slipUrl) instead of creating a new one. VERIFIED payments prevent any further submission.
 - **Order eligibility check:** order must exist, must not be CANCELLED/REJECTED/DELIVERED.
 - **No schema changes** — the existing `Payment` model fully supports the B6 requirements.
+
+## B8 usage (CURRENT — read-only, no schema change)
+
+B8 added the customer-facing order tracking page (`/track?pass=XXX`), all **read-only** and server-side (`app/track/page.tsx`):
+
+- **Order lookup:** `Order` fetched by unique `bookPass` (normalized trim + uppercase).
+- **Status timeline:** `OrderStatusHistory` rows ordered by `createdAt` (asc) represent the actual server-side progression; the current status is `Order.status`. `REJECTED`/`CANCELLED` are terminal states, not lifecycle steps.
+- **Order summary:** `OrderItem` snapshot fields (`bookTitle`, `unitPrice`, `quantity`, `subtotal`) plus `Order.subtotal` / `shippingFee` / `total` — authoritative money values, never client-calculated.
+- **Payment display:** latest `Payment` (ordered by `createdAt` desc, take 1) — method, amount, status.
+
+No writes, no new tables, no schema changes — the existing `Order`, `OrderItem`, `OrderStatusHistory`, and `Payment` models fully support tracking.

@@ -246,3 +246,42 @@ Reusable patterns added for Home & Discovery. All follow the token system above 
 - Continue Shopping (primary yellow button)
 - Track Order (outline button)
 - Responsive: stacked on mobile, side-by-side on desktop
+
+## Order Tracking (B8)
+
+### Lookup form
+
+- Card with labeled input (sr-only label, visible placeholder e.g. `ORD-2026-001928`), uppercase input styling
+- Primary yellow "Track Order" button with loading state ("Searching…")
+- Hint text explaining where the BookPass comes from
+- Not-found state: error-tinted card with AlertCircle icon, friendly copy, and the form remains available for retry
+
+### Status timeline
+
+- Vertical timeline (mobile-first; no horizontal scrolling)
+- Each step: circular node + connector line + label + optional UTC timestamp
+  - Completed: brand-yellow node with black check icon
+  - Current: brand ring + inner dot + inline `status-info` "Current" pill, `aria-current="step"`
+  - Upcoming: muted outline node
+- Successful lifecycle: `Order Placed → Confirmed → Preparing → Shipped → Delivered`
+- Terminal `Rejected` / `Cancelled`: only the history steps that actually happened are shown, followed by a distinct error/neutral terminal banner (X icon) explaining the order will not continue through preparation/shipping/delivery — future success steps are never shown as completed
+- Status badge in the header uses `.status-*` semantics per DESIGN.md mappings
+
+### Order summary
+
+- Same compact item list pattern as B7 (title, `price × qty`, subtotal)
+- Subtotal / Shipping / Total breakdown — all values from the database
+
+### Payment status
+
+- Badge (`.status-pending/.status-success/.status-error`) + method + amount + submitted timestamp (UTC)
+- Friendly text: "Awaiting Verification" / "Paid / Verified" / "Payment Rejected" — never stronger than the database state
+
+### Copy actions
+
+- Copy BookPass and Copy Tracking Link buttons follow the B7 clipboard pattern (Clipboard API + text-selection fallback + 2s "Copied!" feedback)
+
+### Navigation
+
+- "Bookmark This Page" card shows the `/track?pass=...` URL (truncated, selectable) with copy + "Check Another Order"
+- Continue Shopping: full-width primary yellow link

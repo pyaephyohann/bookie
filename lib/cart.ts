@@ -53,14 +53,19 @@ function writeCart(items: CartItem[]): void {
   }
 }
 
-function notify(): void {
-  // Force subscribers to re-read localStorage
-  window.dispatchEvent(new Event("bookie:cart"));
-}
-
 // ── External store (useSyncExternalStore pattern) ──────────────────────────
+// Snapshots must be reference-stable when the data has not changed.
+// React compares by Object.is — a new object reference triggers a re-render,
+// which re-calls getSnapshot, which creates another new object → infinite loop.
+// Solution: cache the snapshot and only replace it when notify() fires.
 
 let listeners: Array<() => void> = [];
+
+// Client-side cached snapshot — replaced only when the cart changes.
+let cachedClientSnapshot: CartState = { items: [] };
+
+// Server-side snapshot — always empty, never changes.
+const serverSnapshot: CartState = { items: [] };
 
 function subscribe(listener: () => void): () => void {
   listeners.push(listener);
@@ -74,11 +79,38 @@ function subscribe(listener: () => void): () => void {
 }
 
 function getSnapshot(): CartState {
-  return { items: readCart() };
+  // Re-read localStorage and replace the cached snapshot only if contents differ.
+  // On first call (or after notify), readCart() gives the latest data.
+  const nextItems = readCart();
+  const prev = cachedClientSnapshot.items;
+
+  // Quick length check before deep comparison
+  if (nextItems.length !== prev.length) {
+    cachedClientSnapshot = { items: nextItems };
+  } else {
+    // Compare by value — same length + same order + same fields
+    const changed = nextItems.some(
+      (item, i) =>
+        item.bookId !== prev[i].bookId ||
+        item.quantity !== prev[i].quantity ||
+        item.slug !== prev[i].slug ||
+        item.title !== prev[i].title ||
+        item.author !== prev[i].author ||
+        item.price !== prev[i].price ||
+        item.coverImage !== prev[i].coverImage,
+    );
+    if (changed) {
+      cachedClientSnapshot = { items: nextItems };
+    }
+  }
+
+  // Return the same reference if nothing changed
+  return cachedClientSnapshot;
 }
 
 function getServerSnapshot(): CartState {
-  return { items: [] };
+  // Always return the same constant — never creates a new reference.
+  return serverSnapshot;
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────
@@ -100,6 +132,8 @@ export function useCartStore() {
           )
         : [...current, { ...item, quantity: 1 }];
       writeCart(next);
+      // Invalidate cache so getSnapshot sees the new data
+      cachedClientSnapshot = { items: next };
       notify();
     },
     []
@@ -110,17 +144,20 @@ export function useCartStore() {
     const current = readCart();
     const next = current.map((i) => (i.bookId === bookId ? { ...i, quantity: clamped } : i));
     writeCart(next);
+    cachedClientSnapshot = { items: next };
     notify();
   }, []);
 
   const removeItem = useCallback((bookId: string) => {
     const current = readCart().filter((i) => i.bookId !== bookId);
     writeCart(current);
+    cachedClientSnapshot = { items: current };
     notify();
   }, []);
 
   const clearCart = useCallback(() => {
     writeCart([]);
+    cachedClientSnapshot = { items: [] };
     notify();
   }, []);
 
@@ -136,4 +173,9 @@ export function useCartStore() {
     totalItems,
     subtotal,
   } as const;
+}
+
+function notify(): void {
+  // Force subscribers to re-read localStorage
+  window.dispatchEvent(new Event("bookie:cart"));
 }

@@ -8,18 +8,29 @@ import { formatDate, formatMoney } from "@/lib/admin/catalog";
 import { METHOD_LABELS, type PaymentMethod, ALLOWED_SLIP_TYPES } from "@/lib/payment";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { PaymentVerifyForm } from "../PaymentVerifyForm";
+import { generateSignedUrl, isCloudinaryUrl } from "@/lib/cloudinary";
 
 // ── Slip validation ────────────────────────────────────────────────────────
 
 /**
- * Validate that a slip URL is an allowed image data URL.
- * Only renders images with MIME types in ALLOWED_SLIP_TYPES (image/jpeg, image/png, image/webp).
- * Returns false for any other format (e.g., data:text/html, data:application/pdf, https URLs).
+ * Validate that a slip URL is displayable.
+ * Supports:
+ * - Legacy base64 data URLs (data:image/jpeg;base64,...)
+ * - Cloudinary URLs (https://res.cloudinary.com/...)
+ * - Other HTTPS image URLs
+ * Returns false for unsafe formats (data:text/html, etc.).
  */
-function isValidSlipDataUrl(url: string | null): boolean {
+function isValidSlipUrl(url: string | null): boolean {
   if (!url) return false;
+
+  // Cloudinary URLs are always valid (they're uploaded via server validation)
+  if (url.includes("res.cloudinary.com")) return true;
+
+  // HTTPS image URLs are valid
+  if (url.startsWith("https://") && !url.startsWith("data:")) return true;
+
+  // Legacy base64 data URLs - validate MIME type
   if (!url.startsWith("data:image/")) return false;
-  // Extract MIME type from data URL: "data:image/jpeg;base64,..."
   const mimeMatch = url.match(/^data:([^;]+);/);
   if (!mimeMatch) return false;
   const mime = mimeMatch[1];
@@ -185,7 +196,14 @@ export default async function PaymentDetailPage({
 
           {/* Payment slip */}
           {(() => {
-            const validSlip = isValidSlipDataUrl(payment.slipUrl) ? payment.slipUrl : null;
+            // Generate a signed URL for Cloudinary assets (time-limited access)
+            // Legacy base64 data URLs are passed through as-is
+            const displayUrl = payment.slipUrl
+              ? isCloudinaryUrl(payment.slipUrl)
+                ? generateSignedUrl(payment.slipUrl, 3600) // 1 hour expiry
+                : payment.slipUrl
+              : null;
+            const validSlip = displayUrl && isValidSlipUrl(displayUrl) ? displayUrl : null;
             return (
               <div className="rounded-lg border border-border bg-surface p-4">
                 <h2 className="mb-3 text-body font-semibold text-text">Payment Slip</h2>

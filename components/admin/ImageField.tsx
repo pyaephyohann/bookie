@@ -53,7 +53,8 @@ export function ImageField({
 
   // A stored upload is shown in the preview; the URL field starts empty so we
   // never render a giant path/URL into the form for an upload-managed image.
-  const isManagedUpload = initialUrl.startsWith("/uploads/");
+  // Check for both legacy local uploads and new Cloudinary uploads.
+  const isManagedUpload = initialUrl.startsWith("/uploads/") || initialUrl.includes("res.cloudinary.com");
 
   const onPick = (file: File | null) => {
     if (!file) return;
@@ -153,7 +154,7 @@ export function ImageField({
                 id={urlName}
                 name={urlName}
                 defaultValue={initialUrl}
-                placeholder="/uploads/… or https://…"
+                placeholder="/uploads/… or Cloudinary/https URL"
               />
             </div>
           )}

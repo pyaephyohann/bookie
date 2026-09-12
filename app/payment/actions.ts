@@ -6,6 +6,7 @@ import {
   isAllowedSlipSize,
   type PaymentMethod,
 } from "@/lib/payment";
+import { uploadFile, deleteAsset, isCloudinaryUrl } from "@/lib/cloudinary";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -114,7 +115,22 @@ export async function submitPayment(
     }
     if (existing.status === "PENDING") {
       // Update existing pending payment instead of creating a new one
-      const slipUrl = await convertFileToDataUrl(slipFile);
+      // Upload must succeed before updating database
+      let slipUrl: string;
+      try {
+        slipUrl = await uploadSlipToCloudinary(slipFile);
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Payment slip upload failed.",
+        };
+      }
+
+      // Delete old slip if it was a Cloudinary upload (after successful new upload)
+      if (existing.slipUrl && isCloudinaryUrl(existing.slipUrl)) {
+        await deleteAsset(existing.slipUrl);
+      }
+
       await prisma.payment.update({
         where: { id: existing.id },
         data: {
@@ -126,34 +142,64 @@ export async function submitPayment(
     }
   }
 
-  // 6. Convert slip file to data URL for storage
-  const slipUrl = await convertFileToDataUrl(slipFile);
+  // 6. Upload slip file to Cloudinary
+  // Upload must succeed before creating payment record
+  let slipUrl: string;
+  try {
+    slipUrl = await uploadSlipToCloudinary(slipFile);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Payment slip upload failed.",
+    };
+  }
 
   // 7. Create payment record (server-authoritative amount)
   const amount = Number(order.total);
 
-  const payment = await prisma.payment.create({
-    data: {
-      orderId: order.id,
-      method,
-      amount,
-      status: "PENDING",
-      slipUrl,
-    },
-  });
-
-  return { success: true, paymentId: payment.id };
+  try {
+    const payment = await prisma.payment.create({
+      data: {
+        orderId: order.id,
+        method,
+        amount,
+        status: "PENDING",
+        slipUrl,
+      },
+    });
+    return { success: true, paymentId: payment.id };
+  } catch (error) {
+    // Database failed after successful upload — clean up Cloudinary asset
+    console.error("[bookie] Payment record creation failed, cleaning up upload:", error);
+    await deleteAsset(slipUrl);
+    return {
+      success: false,
+      error: "Could not save payment record. Please try again.",
+    };
+  }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /**
- * Convert a File to a base64 data URL string.
- * This is the dev storage strategy — production should use Cloudinary or similar.
+ * Upload a payment slip file to Cloudinary.
+ * Returns the Cloudinary URL on success, or throws on failure.
+ * NO base64 fallback — new payment slips must use Cloudinary.
  */
-async function convertFileToDataUrl(file: File): Promise<string> {
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const base64 = buffer.toString("base64");
-  return `data:${file.type};base64,${base64}`;
+async function uploadSlipToCloudinary(file: File): Promise<string> {
+  const result = await uploadFile(file, "payment-slips", {
+    // Payment slips are images, use image resource type
+    resource_type: "image",
+    // Keep the original format
+    format: file.type.split("/")[1] || "jpg",
+  });
+
+  if (result.ok) {
+    return result.url;
+  }
+
+  // NO FALLBACK — reject the submission with a clear error
+  throw new Error(
+    `Payment slip upload failed: ${result.message}. Please try again or contact support.`,
+  );
 }

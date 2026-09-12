@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useState, type ReactNode } from "react";
-import { Save } from "lucide-react";
+import { useActionState, useRef, useState, type ReactNode } from "react";
+import { FileUp, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { READING_CONTENT_MAX_BYTES, type ContentActionState, type ReadingMode } from "@/lib/admin/content";
+
+const READING_FILE_MAX_MB = 50;
 
 interface ReadingContentFormProps {
   bookId: string;
@@ -33,7 +35,56 @@ export function ReadingContentForm({ bookId, action, initial }: ReadingContentFo
   const [content, setContent] = useState(initial.content);
   const [fileUrl, setFileUrl] = useState(initial.fileUrl);
   const [isReadableOnline, setIsReadableOnline] = useState(initial.isReadableOnline);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const errors = state.fieldErrors ?? {};
+
+  const handleFileSelect = (file: File | null) => {
+    if (!file) {
+      setUploadFile(null);
+      setUploadPreview(null);
+      setUploadError(null);
+      return;
+    }
+
+    // Validate file size
+    if (file.size > READING_FILE_MAX_MB * 1024 * 1024) {
+      setUploadError(`File must be ${READING_FILE_MAX_MB} MB or smaller.`);
+      setUploadFile(null);
+      setUploadPreview(null);
+      return;
+    }
+
+    // Validate file extension
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (mode === "PDF" && ext !== "pdf") {
+      setUploadError("File must be a .pdf file.");
+      setUploadFile(null);
+      setUploadPreview(null);
+      return;
+    }
+    if (mode === "EPUB" && ext !== "epub") {
+      setUploadError("File must be a .epub file.");
+      setUploadFile(null);
+      setUploadPreview(null);
+      return;
+    }
+
+    setUploadError(null);
+    setUploadFile(file);
+    setUploadPreview(file.name);
+  };
+
+  const handleFileRemove = () => {
+    setUploadFile(null);
+    setUploadPreview(null);
+    setUploadError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   return (
     <form action={formAction} className="space-y-6">
@@ -67,10 +118,63 @@ export function ReadingContentForm({ bookId, action, initial }: ReadingContentFo
             <input type="hidden" name="fileUrl" value="" />
           </div>
         ) : (
-          <div className="mt-5">
-            <Field label={`${mode} file URL *`} htmlFor="fileUrl" error={errors.fileUrl} hint="Use a root-relative public path or an HTTP(S) URL. A7 does not upload files.">
-              <Input id="fileUrl" name="fileUrl" value={fileUrl} onChange={(event) => setFileUrl(event.target.value)} aria-invalid={Boolean(errors.fileUrl)} aria-describedby={errors.fileUrl ? "fileUrl-error" : undefined} placeholder="/reading/example.pdf" />
-            </Field>
+          <div className="mt-5 space-y-4">
+            {/* File Upload */}
+            <div>
+              <label className="mb-1 block text-label text-text">Upload {mode} file</label>
+              <div className="flex items-start gap-4">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-control border border-dashed border-border bg-surface-muted">
+                  {uploadPreview ? (
+                    <span className="px-2 text-center text-[10px] text-text-muted">{uploadPreview}</span>
+                  ) : (
+                    <FileUp className="size-6 text-text-muted" aria-hidden />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <label
+                    htmlFor="readingFile"
+                    className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-border-strong bg-surface px-3 py-2 text-body-sm text-text transition-colors hover:bg-surface-muted"
+                  >
+                    <FileUp className="size-4" aria-hidden />
+                    {uploadPreview ? "Replace file" : `Upload ${mode} file`}
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    id="readingFile"
+                    name="readingFile"
+                    type="file"
+                    accept={mode === "PDF" ? ".pdf,application/pdf" : ".epub,application/epub+zip"}
+                    className="sr-only"
+                    onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+                    aria-describedby={uploadError ? "readingFile-error" : "readingFile-hint"}
+                    aria-invalid={uploadError ? true : undefined}
+                  />
+                  <p id="readingFile-hint" className="text-caption text-text-muted">
+                    {mode} file · max {READING_FILE_MAX_MB} MB
+                    {uploadPreview ? ` · Selected: ${uploadPreview}` : ""}
+                  </p>
+                  {uploadError && (
+                    <p id="readingFile-error" role="alert" className="text-caption text-error">
+                      {uploadError}
+                    </p>
+                  )}
+                  {uploadPreview && (
+                    <Button type="button" variant="ghost" size="sm" onClick={handleFileRemove}>
+                      <Trash2 className="size-4" aria-hidden />
+                      Remove file
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <input type="hidden" name="readingFileData" value={uploadFile ? "uploaded" : ""} />
+            </div>
+
+            {/* Manual URL fallback */}
+            <div>
+              <Field label={`Or enter ${mode} file URL`} htmlFor="fileUrl" error={errors.fileUrl} hint="Use a root-relative public path or an HTTP(S) URL.">
+                <Input id="fileUrl" name="fileUrl" value={fileUrl} onChange={(event) => setFileUrl(event.target.value)} aria-invalid={Boolean(errors.fileUrl)} aria-describedby={errors.fileUrl ? "fileUrl-error" : undefined} placeholder="/reading/example.pdf" />
+              </Field>
+            </div>
             <input type="hidden" name="content" value="" />
           </div>
         )}

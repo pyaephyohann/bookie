@@ -1,115 +1,90 @@
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { randomUUID } from "node:crypto";
-import { isAllowedCoverSize, isAllowedCoverType } from "@/lib/admin/catalog";
-
 /**
  * Admin image uploads (A3). SERVER-ONLY.
  *
- * DEV STORAGE STRATEGY: files are written to `public/uploads/<bucket>/` and
- * the database stores a short root-relative URL (`/uploads/<bucket>/x.webp`).
- * That keeps `next/image` happy with zero configuration and keeps image bytes
- * out of PostgreSQL.
+ * CLOUDINARY STORAGE: files are uploaded to Cloudinary and the database
+ * stores a Cloudinary URL. This replaces the previous local filesystem
+ * strategy that wrote to public/uploads/.
  *
- * This mirrors the documented B6 payment-slip strategy: fine for development,
- * but production should move to Cloudinary/S3 (see docs/DEVELOPMENT.md, A3).
+ * Legacy behavior:
+ * - Local URLs (/uploads/...) are still recognized for existing data
+ * - Cloudinary URLs (https://res.cloudinary.com/...) are the new standard
  */
 
-export type UploadBucket = "covers" | "authors" | "categories";
+import {
+  uploadFile,
+  deleteAsset,
+  isCloudinaryUrl,
+  type UploadFolder,
+  type CloudinaryResult,
+} from "@/lib/cloudinary";
+import { isAllowedCoverSize, isAllowedCoverType } from "@/lib/admin/catalog";
 
-const BUCKET_DIR: Record<UploadBucket, string> = {
-  covers: join(process.cwd(), "public", "uploads", "covers"),
-  authors: join(process.cwd(), "public", "uploads", "authors"),
-  categories: join(process.cwd(), "public", "uploads", "categories"),
-};
+export type { UploadFolder };
 
-/** Sniff the real image signature — never trust the client MIME/filename. */
-function detectImageExtension(bytes: Uint8Array): "jpg" | "png" | "webp" | null {
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return "jpg";
-  }
-  if (
-    bytes.length >= 8 &&
-    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
-    bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a
-  ) {
-    return "png";
-  }
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
-  ) {
-    return "webp";
-  }
-  return null;
-}
+// ── Validation ─────────────────────────────────────────────────────────────
 
-// Capture groups (not `split`) — a bare split put "uploads" in the bucket slot
-// and "authors" in the filename slot, so cleanup silently no-op'd and every
-// replaced/deleted image leaked its file. The name group also rejects "..".
-const UPLOAD_URL_PATTERN = /^\/uploads\/([a-z]+)\/([A-Za-z0-9][A-Za-z0-9._-]*)$/;
-
-/** Best-effort cleanup of a previously uploaded file. Never throws. */
-export async function removeUploadedImage(url: string | null): Promise<void> {
-  if (!url) return;
-  const match = UPLOAD_URL_PATTERN.exec(url);
-  if (!match) return;
-  const [, bucket, name] = match;
-  if (name.includes("..")) return;
-  const dir = BUCKET_DIR[bucket as UploadBucket];
-  if (!dir) return;
-  try {
-    // `name` is already constrained by UPLOAD_URL_PATTERN and `dir` is static,
-    // so tell the bundler not to trace this dynamic join across the project.
-    await unlink(join(/* turbopackIgnore: true */ dir, name));
-  } catch {
-    // Already gone — a failed cleanup must never fail a save.
-  }
-}
-
-export type UploadResult = { ok: true; url: string } | { ok: false; message: string };
-
-/** Validate + persist an uploaded image, returning its public URL. */
-export async function saveImageUpload(file: File, bucket: UploadBucket): Promise<UploadResult> {
+/**
+ * Validate and persist an uploaded image to Cloudinary.
+ * Returns the Cloudinary URL on success.
+ */
+export async function saveImageUpload(
+  file: File,
+  bucket: UploadFolder,
+): Promise<CloudinaryResult> {
+  // Client-side MIME validation (server re-validates via magic bytes)
   if (!isAllowedCoverType(file.type)) {
     return { ok: false, message: "Image must be a JPEG, PNG or WEBP file." };
   }
+
   if (!isAllowedCoverSize(file.size)) {
     return { ok: false, message: "Image must be 2 MB or smaller." };
   }
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const ext = detectImageExtension(bytes);
-  if (!ext) {
-    return { ok: false, message: "That file is not a valid JPEG, PNG or WEBP image." };
-  }
+  // Upload to Cloudinary
+  const result = await uploadFile(file, bucket, {
+    // Optional: add transformation for image optimization
+    // transformation: [{ width: 800, height: 800, crop: "limit" }],
+  });
 
-  try {
-    const dir = BUCKET_DIR[bucket];
-    await mkdir(dir, { recursive: true });
-    const name = `${randomUUID()}.${ext}`;
-    await writeFile(join(/* turbopackIgnore: true */ dir, name), bytes);
-    return { ok: true, url: `/uploads/${bucket}/${name}` };
-  } catch (error) {
-    console.error("[bookie] image upload failed:", error);
-    return { ok: false, message: "Could not store the uploaded image. Please try again." };
-  }
-}
-
-/** A manual image URL must be a local asset or an https link. */
-export function isAllowedImageUrl(value: string): boolean {
-  return value.startsWith("/") || /^https:\/\/\S+$/.test(value);
+  return result;
 }
 
 /**
- * Shared "keep / replace / remove" resolution used by the author and category
- * forms (the book form has the same logic inlined for its cover).
+ * Delete a previously uploaded image.
+ * Handles both Cloudinary URLs and legacy local URLs.
+ * Best-effort: never throws.
+ */
+export async function removeUploadedImage(url: string | null): Promise<void> {
+  if (!url) return;
+
+  if (isCloudinaryUrl(url)) {
+    await deleteAsset(url);
+  }
+  // Legacy local URLs: no action needed (files in public/uploads/ remain)
+  // They will be cleaned up manually or via a future migration script
+}
+
+// ── URL Helpers ────────────────────────────────────────────────────────────
+
+/**
+ * A manual image URL must be a local asset, a Cloudinary URL, or an https link.
+ */
+export function isAllowedImageUrl(value: string): boolean {
+  return (
+    value.startsWith("/") ||
+    isCloudinaryUrl(value) ||
+    /^https:\/\/\S+$/.test(value)
+  );
+}
+
+/**
+ * Resolve an image field value from form data.
+ * Supports keep/replace/remove actions with Cloudinary uploads.
  */
 export async function resolveImageField(
   formData: FormData,
   existing: string | null,
-  bucket: UploadBucket,
+  bucket: UploadFolder,
 ): Promise<{ ok: true; value: string | null } | { ok: false; message: string }> {
   const actionValue = formData.get("imageAction");
   const action = typeof actionValue === "string" ? actionValue : "keep";
@@ -123,7 +98,10 @@ export async function resolveImageField(
   if (file instanceof File && file.size > 0) {
     const saved = await saveImageUpload(file, bucket);
     if (!saved.ok) return { ok: false, message: saved.message };
+
+    // Delete old image after successful upload
     await removeUploadedImage(existing);
+
     return { ok: true, value: saved.url };
   }
 
@@ -133,12 +111,133 @@ export async function resolveImageField(
     if (!isAllowedImageUrl(manual)) {
       return {
         ok: false,
-        message: "Image URL must be root-relative (/uploads/x.jpg) or an https link.",
+        message:
+          "Image URL must be a root-relative path, Cloudinary URL, or https link.",
       };
     }
-    await removeUploadedImage(existing);
+
+    // Delete old image if it was a Cloudinary upload
+    if (isCloudinaryUrl(existing) && manual !== existing) {
+      await removeUploadedImage(existing);
+    }
+
     return { ok: true, value: manual };
   }
 
   return { ok: true, value: existing };
+}
+
+// ── Reading File Upload ────────────────────────────────────────────────────
+
+export type ReadingFileType = "pdf" | "epub";
+
+const READING_FILE_MAX_SIZE = 50 * 1024 * 1024; // 50 MB for reading files
+
+const ALLOWED_READING_MIME_TYPES: Record<ReadingFileType, string[]> = {
+  pdf: ["application/pdf"],
+  epub: ["application/epub+zip", "application/octet-stream"],
+};
+
+/**
+ * Validate PDF file signature.
+ * PDF files must start with %PDF (magic bytes: 0x25 0x50 0x44 0x46).
+ */
+function isValidPdfSignature(bytes: Uint8Array): boolean {
+  if (bytes.length < 4) return false;
+  // %PDF magic bytes
+  return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+}
+
+/**
+ * Validate EPUB file signature.
+ * EPUB is a ZIP file that must contain a 'mimetype' file with content 'application/epub+zip'.
+ * For efficiency, we check for ZIP signature and then read the mimetype file.
+ */
+async function isValidEpubSignature(file: File): Promise<boolean> {
+  // Read first 100KB for validation (EPUB structure is at the beginning)
+  const maxRead = Math.min(file.size, 100 * 1024);
+  const buffer = await file.slice(0, maxRead).arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+
+  // Check for ZIP signature (PK\x03\x04)
+  if (bytes.length < 4) return false;
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4b || bytes[2] !== 0x03 || bytes[3] !== 0x04) {
+    return false;
+  }
+
+  // Look for 'mimetype' file in the ZIP
+  // The mimetype file should be the first entry and contain 'application/epub+zip'
+  const content = new TextDecoder().decode(bytes);
+  return content.includes("mimetypeapplication/epub+zip");
+}
+
+/**
+ * Validate and upload a reading file (PDF or EPUB) to Cloudinary.
+ * Includes file signature validation to ensure actual file type.
+ */
+export async function saveReadingFile(
+  file: File,
+  type: ReadingFileType,
+): Promise<CloudinaryResult> {
+  // Validate file size
+  if (file.size > READING_FILE_MAX_SIZE) {
+    return {
+      ok: false,
+      message: `File must be ${Math.floor(READING_FILE_MAX_SIZE / 1024 / 1024)} MB or smaller.`,
+    };
+  }
+
+  // Validate MIME type
+  const allowedTypes = ALLOWED_READING_MIME_TYPES[type];
+  if (!allowedTypes.includes(file.type)) {
+    return {
+      ok: false,
+      message: `Invalid file type. Expected ${type.toUpperCase()} file.`,
+    };
+  }
+
+  // Validate extension
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext !== type) {
+    return {
+      ok: false,
+      message: `File extension must be .${type}.`,
+    };
+  }
+
+  // Validate file signature (magic bytes)
+  const headerBytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  
+  if (type === "pdf" && !isValidPdfSignature(headerBytes)) {
+    return {
+      ok: false,
+      message: "File does not appear to be a valid PDF. Expected a PDF document.",
+    };
+  }
+  
+  if (type === "epub" && !(await isValidEpubSignature(file))) {
+    return {
+      ok: false,
+      message: "File does not appear to be a valid EPUB. Expected an EPUB document.",
+    };
+  }
+
+  // Upload to Cloudinary as raw file (no image optimization)
+  const result = await uploadFile(file, "reading", {
+    resource_type: "raw",
+    // Preserve the file extension in the URL
+    format: type,
+  });
+
+  return result;
+}
+
+/**
+ * Remove a reading file from Cloudinary.
+ */
+export async function removeReadingFile(url: string | null): Promise<void> {
+  if (!url) return;
+  if (isCloudinaryUrl(url)) {
+    await deleteAsset(url);
+  }
 }

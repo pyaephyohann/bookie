@@ -11,18 +11,25 @@ import {
   type ContentActionState,
 } from "@/lib/admin/content";
 import { sanitizeReaderContent } from "@/lib/reading-content";
+import { saveReadingFile, removeReadingFile } from "@/lib/admin/uploads";
+import { isCloudinaryUrl } from "@/lib/cloudinary";
 
 function rawFormText(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
 }
 
-function parseReadingForm(formData: FormData) {
+function parseReadingForm(formData: FormData, readingFile: File | null) {
+  // If a file was uploaded, use it as the file URL
+  const fileUrl = fd(formData, "fileUrl");
+  
+  // If a file is being uploaded, we'll handle it separately
+  // For now, validate the form fields
   const parsed = readingContentSchema.safeParse({
     bookId: fd(formData, "bookId"),
     mode: fd(formData, "mode"),
     content: rawFormText(formData, "content"),
-    fileUrl: fd(formData, "fileUrl"),
+    fileUrl: readingFile ? "placeholder" : fileUrl, // Temp placeholder if file uploaded
     isReadableOnline: formData.get("isReadableOnline") === "on" || formData.get("isReadableOnline") === "true",
   });
 
@@ -65,24 +72,63 @@ export async function saveReadingContentAction(
   formData: FormData,
 ): Promise<ContentActionState> {
   await requireAdmin();
-  const parsed = parseReadingForm(formData);
+  
+  // Check if a file was uploaded
+  const readingFile = formData.get("readingFile") as File | null;
+  const hasFileUpload = readingFile && readingFile.size > 0;
+  
+  const parsed = parseReadingForm(formData, hasFileUpload ? readingFile : null);
   if (!parsed.ok) return parsed.state;
 
-  const { bookId, contentType, content, fileUrl, isReadableOnline } = parsed.data;
+  const { bookId, contentType, content, isReadableOnline } = parsed.data;
   const book = await prisma.book.findUnique({ where: { id: bookId }, select: { id: true, slug: true } });
   if (!book) return { error: "That book no longer exists." };
+
+  // Get existing content to clean up old file if replacing
+  const existingContent = await prisma.bookContent.findUnique({
+    where: { bookId },
+    select: { fileUrl: true },
+  });
+
+  let finalFileUrl: string | null = parsed.data.fileUrl;
+
+  // Handle file upload if present
+  if (hasFileUpload) {
+    const mode = parsed.data.mode as "PDF" | "EPUB" | "OTHER";
+    const fileType = mode === "PDF" ? "pdf" : mode === "EPUB" ? "epub" : "pdf";
+    
+    const uploadResult = await saveReadingFile(readingFile, fileType);
+    if (!uploadResult.ok) {
+      return { error: `File upload failed: ${uploadResult.message}` };
+    }
+    finalFileUrl = uploadResult.url;
+    
+    // Delete old file if it was a Cloudinary upload
+    if (existingContent?.fileUrl && isCloudinaryUrl(existingContent.fileUrl)) {
+      await removeReadingFile(existingContent.fileUrl);
+    }
+  } else if (finalFileUrl && finalFileUrl !== existingContent?.fileUrl) {
+    // If URL changed and old was Cloudinary, delete old
+    if (existingContent?.fileUrl && isCloudinaryUrl(existingContent.fileUrl)) {
+      await removeReadingFile(existingContent.fileUrl);
+    }
+  }
 
   try {
     await prisma.$transaction([
       prisma.bookContent.upsert({
         where: { bookId },
-        create: { bookId, contentType, content, fileUrl },
-        update: { contentType, content, fileUrl },
+        create: { bookId, contentType, content, fileUrl: finalFileUrl },
+        update: { contentType, content, fileUrl: finalFileUrl },
       }),
       prisma.book.update({ where: { id: bookId }, data: { isReadableOnline } }),
     ]);
   } catch (error) {
     console.error("[bookie] saveReadingContentAction failed:", error);
+    // If DB failed but we uploaded a file, try to clean it up
+    if (hasFileUpload && finalFileUrl && isCloudinaryUrl(finalFileUrl)) {
+      await removeReadingFile(finalFileUrl);
+    }
     return { error: "Could not save reading content. Please try again." };
   }
 
@@ -102,11 +148,22 @@ export async function deleteReadingContentAction(formData: FormData): Promise<vo
   const book = await prisma.book.findUnique({ where: { id: bookId }, select: { id: true, slug: true } });
   if (!book) redirect("/admin/content/reading?notice=not-found");
 
+  // Get existing content to clean up Cloudinary file
+  const existingContent = await prisma.bookContent.findUnique({
+    where: { bookId },
+    select: { fileUrl: true },
+  });
+
   try {
     await prisma.$transaction([
       prisma.bookContent.deleteMany({ where: { bookId } }),
       prisma.book.update({ where: { id: bookId }, data: { isReadableOnline: false } }),
     ]);
+    
+    // Delete Cloudinary file after successful DB delete
+    if (existingContent?.fileUrl && isCloudinaryUrl(existingContent.fileUrl)) {
+      await removeReadingFile(existingContent.fileUrl);
+    }
   } catch (error) {
     console.error("[bookie] deleteReadingContentAction failed:", error);
     redirect(`/admin/content/reading/${bookId}?notice=failed`);

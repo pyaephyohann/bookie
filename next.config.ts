@@ -14,8 +14,12 @@ const nextConfig: NextConfig = {
   },
   images: {
     // Admins may point a book cover at an https image URL from the catalog
-    // screen (A3). Uploaded covers are stored locally under /public/uploads.
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
+    // screen (A3). Uploaded covers are now stored on Cloudinary in production.
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "**.cloudinary.com" },
+      { protocol: "https", hostname: "**" }, // Keep for manual HTTPS URLs
+    ],
   },
 };
 

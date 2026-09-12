@@ -185,3 +185,14 @@ Do **not** claim a check passed unless it actually passed.
 - **Payment display is read-only in A5:** A5 shows payment information (method, amount, status, slip link) but does not implement verify/reject actions. A6 owns payment management.
 - **Decimal conversion:** Prisma returns `Decimal` objects for money fields. Convert with `Number()` before passing to client components. Use `formatMoney()` from `lib/admin/catalog.ts` for display.
 - **Payment status filter with "No payment" option:** orders without any `Payment` record need a special filter case (`payments: { none: {} }`) rather than filtering on payment status field.
+
+## A6 learnings (payment management)
+
+- **Multiple payments per order:** an Order may have multiple Payment records (e.g., rejected then resubmitted). The payment list must list individual Payment records, not assume one order = one payment. Use `payment.order.bookPass` and `payment.order.customerName` via relation, not from the Payment model directly.
+- **Atomic payment transitions:** use `prisma.$executeRaw` with `UPDATE … WHERE status = 'PENDING'` for verify/reject. This ensures only one concurrent action can transition a PENDING payment. If `updated === 0`, the payment either doesn't exist or is already VERIFIED/REJECTED.
+- **Payment verification does NOT change Order.status:** this is an intentional design decision. Payment verification confirms the payment was received; order status management (CONFIRMED, PREPARING, etc.) remains in A5. Admin manually progresses orders after verifying payments.
+- **Payment rejection does NOT restore inventory:** inventory was decremented at order creation (B5). Stock restoration is a manual A4 operation. Payment rejection only marks the payment as rejected.
+- **Base64 slip display:** payment slips stored as base64 data URLs can be displayed with a plain `<img src={slipUrl}>`. No special handling needed for data URLs. Handle missing/invalid slip gracefully with an empty state.
+- **Transaction reference is not unique:** multiple payments can have the same reference. No uniqueness constraint. The field is optional and admin-editable.
+- **Payment form uses dual useActionState:** the `PaymentVerifyForm` uses three separate `useActionState` hooks for verify, reject, and reference update actions. Each has its own state and dispatch.
+- **Slip URL validation:** when displaying `slipUrl`, only render if it exists and looks like a data URL (starts with `data:image/`). Do not blindly trust arbitrary URL values.

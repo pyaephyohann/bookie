@@ -52,7 +52,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: "Inventory", href: "/admin/inventory", icon: Package },
       { label: "Orders", href: "/admin/orders", icon: BookOpen },
-      { label: "Payments", href: "/admin/payments", icon: CreditCard, badge: "Soon" },
+      { label: "Payments", href: "/admin/payments", icon: CreditCard },
     ],
   },
   {

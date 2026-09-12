@@ -286,6 +286,23 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Feedback:** status updates redirect with `?notice=status-updated`. Invalid transitions return user-friendly error messages.
 - **Prisma schema:** unchanged — no migration, no new models or fields.
 
+## Admin Payments (CURRENT — A6)
+
+- **Route structure:** `/admin/payments` (list), `/admin/payments/[id]` (payment detail).
+- **Module split:** `lib/admin/payment-queries.ts` is server-only (Prisma queries for overview, list, detail). Server actions live in `app/admin/(dashboard)/payments/actions.ts`. The verify/reject form is a client component in `PaymentVerifyForm.tsx`.
+- **Overview:** `getPaymentOverview()` returns total payments, pending, verified, and rejected counts.
+- **List:** `listPayments()` provides server-side search (BookPass, customer name, transaction reference), payment status filter, payment method filter, sort (newest, oldest, amount), and pagination. Each Payment record is listed independently (an Order may have multiple payments).
+- **Detail:** `getPaymentDetail()` fetches the payment with order information, verification/rejection details, and slip URL.
+- **Payment transitions:** only PENDING → VERIFIED and PENDING → REJECTED are valid. VERIFIED and REJECTED are terminal states. Transitions enforced via atomic conditional `UPDATE … WHERE status = 'PENDING'` so only one concurrent action succeeds.
+- **Verification:** `verifyPayment()` sets status to VERIFIED, verifiedById to admin user, verifiedAt to current time. Does NOT change Order.status.
+- **Rejection:** `rejectPayment()` sets status to REJECTED with optional reason, verifiedById to admin user, verifiedAt to current time. Does NOT change Order.status.
+- **Transaction reference:** `updateTransactionReference()` allows admins to set/clear the reference field. No uniqueness constraint.
+- **Payment slips:** stored as base64 data URLs in `Payment.slipUrl` (dev strategy). Displayed as `<img>` in admin UI. Production should migrate to Cloudinary/S3.
+- **Order-status interaction:** payment verification/rejection does NOT change Order.status. Order status management remains in A5. Inventory is NOT restored on payment rejection.
+- **Security:** every page and action calls `requireAdmin()` server-side. Atomic conditional UPDATE prevents concurrent duplicate transitions. Client UI is never trusted.
+- **Feedback:** verification/rejection redirects with `?notice=verified` or `?notice=rejected`. Invalid transitions return user-friendly error messages.
+- **Prisma schema:** unchanged — no migration, no new models or fields.
+
 ## Conventions
 
 - Path alias `@/` for project-root imports.

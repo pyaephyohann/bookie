@@ -51,7 +51,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: "",
     items: [
       { label: "Inventory", href: "/admin/inventory", icon: Package },
-      { label: "Orders", href: "/admin/orders", icon: BookOpen, badge: "Soon" },
+      { label: "Orders", href: "/admin/orders", icon: BookOpen },
       { label: "Payments", href: "/admin/payments", icon: CreditCard, badge: "Soon" },
     ],
   },

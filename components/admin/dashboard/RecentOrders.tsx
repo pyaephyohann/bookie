@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { AdminCard } from "../AdminCard";
 import { Badge } from "@/components/ui/badge";
@@ -39,12 +40,12 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
       title="Recent Orders"
       description="Latest customer orders"
       headerAction={
-        <a
+        <Link
           href="/admin/orders"
           className="text-caption font-semibold text-brand-on hover:underline"
         >
           View all
-        </a>
+        </Link>
       }
     >
       {orders.length === 0 ? (

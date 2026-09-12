@@ -8,70 +8,68 @@
 
 ## A4 — Inventory Management 🔒 LOCKED
 
-A4 is complete. Inventory management is fully implemented and verified.
+## A5 — Order Management 🔒 LOCKED
 
-### What A4 covers
+A5 is complete. Order management is fully implemented and verified.
 
-**Inventory Overview** (`/admin/inventory`)
-- Overview cards: total books, total units, low stock, out of stock
-- Paginated inventory table with book cover, title, authors, ISBN, stock quantity, status badge, transaction count, last activity
-- Server-side search (title, ISBN, author), status filter (in stock/low stock/out of stock), sort (recently updated, stock level, title)
+### What A5 covers
+
+**Order Overview** (`/admin/orders`)
+- Overview cards: total orders, placed, confirmed, shipped, delivered, rejected/cancelled
+- Paginated order table with BookPass, customer name, date, items, total, payment status, order status
+- Server-side search (BookPass, customer name, phone, email)
+- Order status filter (Placed, Confirmed, Preparing, Shipped, Delivered, Rejected, Cancelled)
+- Payment status filter (Pending, Verified, Rejected, No payment)
+- Sort (newest, oldest, total high→low, total low→high)
 - All filter state carried in URL parameters
 
-**Book Inventory Detail** (`/admin/inventory/[bookId]`)
-- Book info display with cover, title, authors, ISBN, categories
-- Current stock level with status indicator
-- Stock adjustment form (RESTOCK, RETURN, DAMAGE, ADJUSTMENT types)
-- Set stock level form (direct override)
-- Transaction history with pagination
-- Atomic stock mutations via Prisma transactions
+**Order Detail** (`/admin/orders/[id]`)
+- Order information: BookPass, date, status badge
+- Customer information: name, phone, alternate phone, email, shipping address, note
+- Order items: book title (snapshot), unit price, quantity, subtotal
+- Totals: subtotal, discount, shipping fee, total
+- Payment information: method, amount, status, submitted date, transaction reference, slip link (read-only)
+- Status timeline: OrderStatusHistory entries with admin user reference
 
-**Transaction History** (`/admin/inventory/history`)
-- Global history of all stock movements across all books
-- Links back to individual book inventory pages
-- Paginated with transaction type, quantity change, stock before/after, note, date
+**Status Management** (`app/admin/(dashboard)/orders/actions.ts`)
+- Server-side status update action with `requireAdmin()`
+- Valid transitions enforced:
+  - PLACED → CONFIRMED, REJECTED, CANCELLED
+  - CONFIRMED → PREPARING, REJECTED, CANCELLED
+  - PREPARING → SHIPPED
+  - SHIPPED → DELIVERED
+  - DELIVERED, REJECTED, CANCELLED → terminal
+- Creates OrderStatusHistory entry with `changedById` set to admin user
+- Atomic Prisma transaction for status update + history creation
 
 ### Architecture
 
-- `lib/admin/inventory-queries.ts` — server-only inventory queries (overview, list, detail, transactions)
-- `app/admin/(dashboard)/inventory/actions.ts` — server actions for stock adjustments (atomic transactions)
-- `app/admin/(dashboard)/inventory/InventoryAdjustForm.tsx` — client component for adjustment forms
-- `app/admin/(dashboard)/inventory/page.tsx` — inventory list page
-- `app/admin/(dashboard)/inventory/[bookId]/page.tsx` — book-level detail page
-- `app/admin/(dashboard)/inventory/history/page.tsx` — global transaction history
+- `lib/admin/order-queries.ts` — server-only order queries (overview, list, detail, timeline)
+- `app/admin/(dashboard)/orders/actions.ts` — server action for status updates
+- `app/admin/(dashboard)/orders/page.tsx` — order list page
+- `app/admin/(dashboard)/orders/[id]/page.tsx` — order detail page
+- `app/admin/(dashboard)/orders/OrderStatusForm.tsx` — client component for status management
 
-### Stock adjustment approach
+### Inventory behavior
 
-Stock mutations use atomic conditional `UPDATE … WHERE … RETURNING` inside `prisma.$transaction`:
-1. Atomic UPDATE adds/subtracts delta and checks sufficiency in one statement
-2. PostgreSQL row-locks the Book row for the duration of the transaction
-3. InventoryTransaction record created with verified before/after values
-4. Paths revalidated
-
-Concurrent access verified against live PostgreSQL:
-- Concurrent increases (stock 10 + +5 + +3) → final 18 ✅
-- Concurrent decreases with sufficient stock → correct final stock ✅
-- Concurrent insufficient-stock decreases → stock never negative ✅
-- 50 mixed concurrent operations → stock and history consistent ✅
-
-Transaction types: RESTOCK, SALE, RETURN, ADJUSTMENT, DAMAGE
+A5 does NOT automatically restore inventory when orders are rejected or cancelled.
+Inventory was decremented at order creation (B5).
+Stock restoration remains a manual operation through A4.
 
 ### Verification status
 
 - TypeScript: PASS
 - ESLint: PASS
-- Production build: PASS (all inventory routes registered)
-- Concurrency safety: VERIFIED against live PostgreSQL
-- A2 dashboard integration: CONSISTENT
+- Production build: PASS (all order routes registered)
 - Security (requireAdmin): VERIFIED
+- Status transitions: VERIFIED
 - Dark mode: VERIFIED
 - Mobile layout: VERIFIED
 
 ### Not in scope (do not start)
 
-- A5 order management
 - A6 payment management
 - A7 content & promotions
 - A8 admin production polish
 
-A5 — Order Management is next.
+A6 — Payment Management is next.

@@ -25,7 +25,7 @@ The Bookie project is delivered in milestones across the User App and Admin App.
 | A2 | **Dashboard & Analytics** | 🔒 Locked — KPI overview, revenue analytics (30d/90d), orders by status, orders over time, sales by category, payment analytics (donut + method breakdown), inventory alerts, recent orders, SVG charts, server-side aggregation |
 | A3 | **Catalog Management** | 🔒 Locked — Books, authors, categories CRUD with server-side search/filter/sort/pagination; publishers managed via the derived `Book.publisher` field; cover/photo uploads with client+server validation (bodySizeLimit fix + orphan-cleanup fix); safe archive vs. guarded delete; publication status management |
 | A4 | **Inventory Management** | 🔒 Locked — Stock levels, adjustments, damage tracking, transaction history; atomic PostgreSQL stock mutations verified against concurrent access; A2 dashboard integration confirmed |
-| A5 | **Order Management** | ⏳ Order list, detail, status updates, timeline management |
+| A5 | **Order Management** | 🔒 Locked — Order list with search/filter/sort, order detail with customer/items/totals/payment, status management with validated transitions, admin status history |
 | A6 | **Payment Management** | ⏳ Payment verification, approval/rejection, slip review |
 | A7 | **Content Management** | ⏳ Reading content upload, featured books, promotions, banners |
 | A8 | **Admin Polish** | ⏳ Performance, accessibility, deployment hardening |

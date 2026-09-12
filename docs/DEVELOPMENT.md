@@ -173,3 +173,15 @@ Do **not** claim a check passed unless it actually passed.
 - **No-op updates are safe:** `setStock` compares `stockBefore !== stockAfter` before creating a transaction, so setting stock to the same value does not create a useless history entry.
 - **Overview queries filter out ARCHIVED books:** low-stock and out-of-stock counts only apply to non-archived books, consistent with the dashboard alerts in A2.
 - **Reuse AdminPagination props:** the shared pagination component uses `basePath` and `params` (not `baseUrl` and `extraParams`). Check the component interface before calling it from new pages.
+
+## A5 learnings (order management)
+
+- **No Customer model:** guest checkout puts customer data directly on the `Order` record (name, phone, email, shipping address). Do not invent a `Customer` table when the schema already stores this on the order.
+- **OrderItem snapshots are authoritative:** `bookTitle` and `unitPrice` on `OrderItem` are snapshots taken at order creation. Historical order displays must use these snapshot values, never re-read the current `Book` price/title.
+- **Inventory is not restored on rejection/cancellation:** B5 decrements inventory at order creation (PLACED status). A5 must NOT automatically restore stock when an order is rejected or cancelled. Stock restoration is a manual A4 operation. Document this clearly.
+- **Valid status transitions must be enforced server-side:** the client shows buttons for valid transitions, but the server action re-validates the current status and the requested transition. Never trust client-side disabled/hidden buttons for authorization.
+- **Terminal states are immutable:** DELIVERED, REJECTED, and CANCELLED have no valid outgoing transitions. The server action rejects any attempt to change them.
+- **Status history with admin reference:** every status change creates an `OrderStatusHistory` entry with `changedById` set to the authenticated admin's ID. This provides an audit trail of who changed what and when.
+- **Payment display is read-only in A5:** A5 shows payment information (method, amount, status, slip link) but does not implement verify/reject actions. A6 owns payment management.
+- **Decimal conversion:** Prisma returns `Decimal` objects for money fields. Convert with `Number()` before passing to client components. Use `formatMoney()` from `lib/admin/catalog.ts` for display.
+- **Payment status filter with "No payment" option:** orders without any `Payment` record need a special filter case (`payments: { none: {} }`) rather than filtering on payment status field.

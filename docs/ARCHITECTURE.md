@@ -272,6 +272,20 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Feedback:** adjustments redirect with `?notice=adjusted` or `?notice=updated`. Insufficient stock and negative stock errors are returned as user-friendly messages.
 - **Prisma schema:** unchanged — no migration, no new models or fields.
 
+## Admin Orders (CURRENT — A5)
+
+- **Route structure:** `/admin/orders` (list), `/admin/orders/[id]` (order detail).
+- **Module split:** `lib/admin/order-queries.ts` is server-only (Prisma queries for overview, list, detail, timeline). Server actions live in `app/admin/(dashboard)/orders/actions.ts`. The status form is a client component in `OrderStatusForm.tsx`.
+- **Overview:** `getOrderOverview()` returns total orders, and counts for PLACED, CONFIRMED, SHIPPED, DELIVERED, and REJECTED/CANCELLED.
+- **List:** `listOrders()` provides server-side search (BookPass, customer name, phone, email), order status filter, payment status filter, sort (newest, oldest, total), and pagination. All state lives in URL params.
+- **Detail:** `getOrderDetail()` fetches the order with items, payments, and status history. OrderItem snapshot fields (bookTitle, unitPrice) are authoritative for historical data.
+- **Status management:** `updateOrderStatus()` server action enforces valid transitions server-side (PLACED→CONFIRMED/REJECTED/CANCELLED, CONFIRMED→PREPARING/REJECTED/CANCELLED, PREPARING→SHIPPED, SHIPPED→DELIVERED). Terminal states (DELIVERED, REJECTED, CANCELLED) cannot be changed. Each successful transition creates an `OrderStatusHistory` entry with `changedById` set to the admin user.
+- **Inventory behavior:** A5 does NOT automatically restore inventory when orders are rejected or cancelled. Inventory was decremented at order creation (B5). Stock restoration is a manual operation through A4.
+- **Payment display:** payment information (method, amount, status, slip link) is displayed as read-only. A6 owns payment management.
+- **Security:** every page and action calls `requireAdmin()` server-side. Status transitions are validated server-side. The client form is never trusted.
+- **Feedback:** status updates redirect with `?notice=status-updated`. Invalid transitions return user-friendly error messages.
+- **Prisma schema:** unchanged — no migration, no new models or fields.
+
 ## Conventions
 
 - Path alias `@/` for project-root imports.

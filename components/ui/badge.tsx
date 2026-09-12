@@ -1,7 +1,9 @@
 import type { ComponentProps } from "react";
 import {
+  BookStatus,
   OrderStatus,
   PaymentStatus,
+  type BookStatus as BookStatusValue,
   type OrderStatus as OrderStatusValue,
   type PaymentStatus as PaymentStatusValue,
 } from "@/generated/prisma/client";
@@ -75,5 +77,26 @@ export function PaymentStatusBadge({ status, ...props }: StatusBadgeProps & { st
   );
 }
 
+const bookStatusSemantic: Record<BookStatusValue, StatusSemantic> = {
+  DRAFT: "pending",
+  PUBLISHED: "success",
+  ARCHIVED: "neutral",
+};
+
+const bookStatusLabel: Record<BookStatusValue, string> = {
+  DRAFT: "Draft",
+  PUBLISHED: "Published",
+  ARCHIVED: "Archived",
+};
+
+/** Book publication status. Server components only (imports the Prisma enums). */
+export function BookStatusBadge({ status, ...props }: StatusBadgeProps & { status: BookStatusValue }) {
+  return (
+    <Badge semantic={bookStatusSemantic[status]} {...props}>
+      {bookStatusLabel[status]}
+    </Badge>
+  );
+}
+
 // Re-exported so consumers (and exhaustiveness checks) can use the enum values.
-export { OrderStatus, PaymentStatus };
+export { BookStatus, OrderStatus, PaymentStatus };

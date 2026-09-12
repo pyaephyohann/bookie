@@ -236,22 +236,25 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Login:** `/admin/login` — public route with `LoginForm` using `useActionState` for pending/error states.
 - **Dashboard:** `/admin` — real analytics with KPIs, revenue/orders/categories/payments charts, inventory alerts, recent orders.
 - **Settings:** `/admin/settings` — shell with Admin Account, Appearance, Security sections.
-- **Bootstrap:** `scripts/create-admin.mjs` — interactive script to create or promote admin users.
+- **Bootstrap:** `scripts/create-admin.mjs` — interactive script to create or promote admin users. Run it with `node scripts/create-admin.mjs` from the repo root. It does not import the app's Prisma client (that client is generated as TypeScript and plain Node cannot load it); it writes one idempotent upsert through the project's own Prisma CLI (`prisma db execute`), so `DATABASE_URL` resolves from `.env` exactly like the app. Passwords are scrypt-hashed, masked on a TTY, and never printed.
 - **Environment:** `BOOKIE_AUTH_SECRET` — HMAC signing key for session cookies.
 - **Prisma schema:** unchanged — existing `User` model with `UserRole` enum (ADMIN/STAFF) is sufficient.
+- **Navigation:** the Catalog links resolve to real routes; Inventory/Orders/Payments/Content/Analytics still show "Soon" badges.
 
-- **Authentication:** `lib/auth.ts` — `node:crypto` scrypt password hashing, HMAC-SHA256 signed session cookie (`bookie_admin_session`), `requireAdmin()` server-side authorization helper. No auth library dependencies.
-- **Session:** httpOnly cookie with signed JSON payload (`{ userId }`). 7-day expiry. `sameSite: lax` for CSRF protection.
-- **Authorization:** `requireAdmin()` runs in server components/layouts. Reads session cookie, validates user exists and is active, checks role (ADMIN or STAFF), redirects to `/admin/login` if unauthorized. No client-side role checks.
-- **Admin shell:** `AdminShell` composes `AdminSidebar` (persistent on desktop, drawer on mobile) + `AdminNavbar` (sticky top bar with sidebar trigger, branding, ThemeToggle, profile menu) + content area.
-- **Navigation:** organized by section (Dashboard, Catalog, Inventory, Orders, Payments, Content, Analytics, Settings). Unimplemented routes show "Soon" badges.
-- **SiteChrome:** hides Navbar/Footer/FloatingCart on `/admin` routes — same pattern as reader routes.
-- **Login:** `/admin/login` — public route with `LoginForm` using `useActionState` for pending/error states.
-- **Dashboard:** `/admin` — shell with placeholder KPI cards and section stubs ready for A2 analytics.
-- **Settings:** `/admin/settings` — shell with Admin Account, Appearance, Security sections.
-- **Bootstrap:** `scripts/create-admin.mjs` — interactive script to create or promote admin users.
-- **Environment:** `BOOKIE_AUTH_SECRET` — HMAC signing key for session cookies.
-- **Prisma schema:** unchanged — existing `User` model with `UserRole` enum (ADMIN/STAFF) is sufficient.
+## Admin Catalog (CURRENT — A3)
+
+- **Route structure:** `/admin/catalog/{books,authors,categories,publishers}`, with `new` and `[id]` sub-routes for books, authors and categories. Publishers have a single list screen because there is no publishers table.
+- **Module split:** `lib/admin/catalog.ts` is PURE (Zod schemas, constants, slug/money/date helpers) and safe to import from client components. `lib/admin/catalog-queries.ts` is server-only (Prisma). `lib/admin/uploads.ts` is server-only (filesystem). All mutations live in per-resource `actions.ts` files.
+- **List queries:** `listBooks` / `listAuthors` / `listCategories` / `listPublishers` do filtering, sorting, counting and pagination **in the database** (`findMany` + `count` in one `Promise.all`, `skip`/`take`). Nothing downloads the catalog into the browser.
+- **State lives in the URL:** search, filters, sort and page are plain query params. Lists use a plain GET `<form>` (`AdminFilterForm`) and server-rendered `<Link>` pagination (`AdminPagination`), so they work without JavaScript and stay shareable/bookmarkable.
+- **Publishers are derived:** `Book.publisher` is a plain `String?` column, so the publisher screen is a `groupBy` aggregate over books. "Rename" is an `updateMany` across every book using the name (blocked if the target name already exists, to avoid an accidental merge); "Clear" nulls the column. `docs/DATABASE.md` documents "no separate Publisher model".
+- **Mutations:** each server action calls `requireAdmin()` first, re-validates FormData with Zod, and returns a `CatalogActionState` (`{ error, fieldErrors?, success? }`) for `useActionState`. Book create/update writes the `BookAuthor`/`CategoryBook` join rows inside a `prisma.$transaction` (delete-then-create) so relationships are replaced atomically and never duplicated.
+- **Delete vs. archive:** `OrderItem` and `InventoryTransaction` deliberately do not cascade, so a book with order/inventory history is **archived** (`status = ARCHIVED`) rather than deleted. Hard delete is allowed only when both counts are zero and is guarded by a two-step confirmation. Authors/categories with linked books (or child categories) cannot be deleted.
+- **Category hierarchy safety:** the parent picker excludes the edited category and its entire subtree (`getCategoryOptions` walks the tree in memory), and the action re-checks the same rule server-side, so the tree can never become cyclic.
+- **Feedback:** destructive/normal mutations redirect with a safe status code (`?notice=created`), which `AdminFeedback` maps to a human message. Raw database errors are never surfaced.
+- **Uploads (DEV-ONLY):** validated images are written to `public/uploads/<bucket>/` and the database stores only a short root-relative URL, so images stay out of PostgreSQL and `next/image` needs no loader. Validation is MIME allow-list + 2 MB cap + real JPEG/PNG/WEBP byte-signature sniffing; client filenames are never trusted. Production should swap the storage layer for Cloudinary/S3.
+- **Revalidation:** catalog mutations call `revalidatePath("/", "layout")` so storefront pages (home, book detail, category, author) reflect status/price/relationship edits.
+- **Prisma schema:** unchanged — no migration, no new models or fields.
 
 ## Conventions
 

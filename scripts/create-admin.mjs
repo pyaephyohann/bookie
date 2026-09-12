@@ -8,48 +8,116 @@
  * Usage:
  *   node scripts/create-admin.mjs
  *
- * Prompts for email and password interactively.
- * Creates a new ADMIN user or promotes an existing STAFF user.
+ * Prompts for email, name and password, then upserts a single ADMIN user
+ * (role ADMIN, isActive true) against the database in DATABASE_URL.
+ *
+ * Implementation note: this script runs on plain Node, but Prisma 7's app
+ * client is generated as TypeScript under `generated/prisma` (custom output),
+ * which plain Node cannot import. Rather than duplicate the data layer, the
+ * script reuses the project's own Prisma CLI config (`prisma.config.ts` +
+ * `prisma db execute`), which resolves DATABASE_URL from .env exactly like the
+ * application does. The SQL is written to a 0600 temp file that is always
+ * removed, and it contains a password *hash* — never the password itself.
  *
  * Environment:
- *   DATABASE_URL — must be set (loaded from .env by dotenv)
+ *   DATABASE_URL — must be set (loaded from .env, or exported by the shell)
  */
 
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, writeFileSync, rmSync } from "node:fs";
+import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
 import { createInterface } from "node:readline";
-import { scrypt, randomBytes } from "node:crypto";
+import { scrypt, randomBytes, randomUUID } from "node:crypto";
 import { promisify } from "node:util";
+import { spawnSync } from "node:child_process";
 
 const scryptAsync = promisify(scrypt);
 
-// Load .env from project root
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const envPath = resolve(__dirname, "../.env");
+const projectRoot = resolve(__dirname, "..");
+const envPath = resolve(projectRoot, ".env");
+
+// Load .env the same way the app does. The Prisma CLI also loads it, but we
+// check up front so a missing value fails with a clear message.
+let envFound = false;
 try {
   const envContent = readFileSync(envPath, "utf-8");
+  envFound = true;
   for (const line of envContent.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
     const eqIdx = trimmed.indexOf("=");
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();
-    const value = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+    const value = trimmed
+      .slice(eqIdx + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (!process.env[key]) process.env[key] = value;
   }
 } catch {
-  console.error("Could not read .env file. Make sure DATABASE_URL is set.");
+  // Fall through — DATABASE_URL may already be exported by the shell.
+}
+
+if (!process.env.DATABASE_URL) {
+  console.error(
+    envFound
+      ? "DATABASE_URL is not set. Add it to .env (see .env.example)."
+      : "Could not read .env. Make sure DATABASE_URL is set.",
+  );
   process.exit(1);
 }
 
-// Dynamic import of Prisma (after .env is loaded)
-const { PrismaClient } = await import("@/generated/prisma/client/index.js");
-const { PrismaPg } = await import("@prisma/adapter-pg");
+// ── Input ───────────────────────────────────────────────────────────────────
+// One readline interface for the whole session. Creating several interfaces on
+// the same stream loses buffered input (closing one discards the rest), so all
+// prompts read from a single shared line queue — which also lets piped input
+// work, not just an interactive terminal.
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+const stdinIsTTY = Boolean(process.stdin.isTTY);
+const rl = createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  terminal: stdinIsTTY,
 });
+
+const queuedLines = [];
+const lineWaiters = [];
+
+rl.on("line", (line) => {
+  const waiter = lineWaiters.shift();
+  if (waiter) waiter(line);
+  else queuedLines.push(line);
+});
+
+function nextLine() {
+  if (queuedLines.length > 0) return Promise.resolve(queuedLines.shift());
+  return new Promise((res) => lineWaiters.push(res));
+}
+
+/**
+ * Prompt for one line. Passwords are masked on a real terminal; when stdin is
+ * not a TTY (pipes/CI) readline already does not echo, so the value stays out
+ * of logs either way.
+ */
+function ask(question, { mask = false } = {}) {
+  // `_writeToOutput` is the standard (if private) hook for suppressing echo.
+  const originalWriter = mask && stdinIsTTY ? rl._writeToOutput : null;
+  if (originalWriter) rl._writeToOutput = () => {};
+
+  process.stdout.write(question);
+
+  return nextLine().then((line) => {
+    if (originalWriter) {
+      rl._writeToOutput = originalWriter;
+      process.stdout.write("\n");
+    }
+    return line.trim();
+  });
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 async function hashPassword(password) {
   const salt = randomBytes(16).toString("hex");
@@ -57,45 +125,49 @@ async function hashPassword(password) {
   return `${salt}:${buf.toString("hex")}`;
 }
 
-function ask(question, { mask = false } = {}) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    if (mask) {
-      process.stdout.write(question);
-      const stdin = process.stdin;
-      const wasRaw = stdin.isRaw;
-      if (typeof stdin.setRawMode === "function") stdin.setRawMode(true);
-
-      let value = "";
-      const onData = (ch) => {
-        const s = String(ch);
-        if (s === "\n" || s === "\r") {
-          if (typeof stdin.setRawMode === "function") stdin.setRawMode(wasRaw ?? false);
-          stdin.removeListener("data", onData);
-          process.stdout.write("\n");
-          rl.close();
-          resolve(value);
-        } else if (s === "\u0003") {
-          process.exit();
-        } else if (s === "\u007F" || s === "\b") {
-          if (value.length > 0) {
-            value = value.slice(0, -1);
-            process.stdout.write("\b \b");
-          }
-        } else {
-          value += s;
-          process.stdout.write("*");
-        }
-      };
-      stdin.on("data", onData);
-    } else {
-      rl.question(question, (answer) => {
-        rl.close();
-        resolve(answer.trim());
-      });
-    }
-  });
+/** Quote a value as a SQL string literal. */
+function sqlString(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
 }
+
+/**
+ * Run SQL through the project's Prisma CLI. Returns true on success.
+ * The SQL is written to a 0600 temp file and always removed.
+ */
+function runSql(sql) {
+  const tempFile = join(tmpdir(), `bookie-admin-${randomUUID()}.sql`);
+  try {
+    writeFileSync(tempFile, sql, { mode: 0o600 });
+    const result = spawnSync(
+      "npx",
+      ["--no-install", "prisma", "db", "execute", "--file", tempFile],
+      {
+        cwd: projectRoot,
+        encoding: "utf-8",
+        shell: process.platform === "win32",
+      },
+    );
+
+    if (result.status !== 0) {
+      const detail = `${result.stderr || ""}\n${result.stdout || ""}`.trim();
+      console.error(
+        "\nDatabase error:",
+        detail.split("\n").find((l) => l.trim()) || "unknown error",
+      );
+      if (/Authentication failed|password authentication/i.test(detail)) {
+        console.error("PostgreSQL rejected the credentials in DATABASE_URL.");
+      } else if (/ECONNREFUSED|Connection refused/i.test(detail)) {
+        console.error("Could not reach PostgreSQL. Is the server running?");
+      }
+      return false;
+    }
+    return true;
+  } finally {
+    rmSync(tempFile, { force: true });
+  }
+}
+
+// ── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
   console.log("\n📖 Bookie — Create Admin User\n");
@@ -119,47 +191,42 @@ async function main() {
   }
 
   const passwordHash = await hashPassword(password);
+  const normalizedEmail = email.toLowerCase();
 
-  try {
-    const existing = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+  console.log(`\nSaving admin user: ${normalizedEmail}`);
 
-    if (existing) {
-      console.log(`\nUser ${email} already exists (role: ${existing.role}).`);
-      if (existing.role === "ADMIN") {
-        console.log("They are already an admin. No changes needed.");
-      } else {
-        console.log("Promoting to ADMIN...");
-        await prisma.user.update({
-          where: { id: existing.id },
-          data: { role: "ADMIN", passwordHash, name },
-        });
-        console.log("✅ Done! User promoted to ADMIN.");
-      }
-    } else {
-      console.log(`\nCreating admin user: ${email}`);
-      await prisma.user.create({
-        data: {
-          name,
-          email: email.toLowerCase(),
-          passwordHash,
-          role: "ADMIN",
-          isActive: true,
-        },
-      });
-      console.log("✅ Done! Admin user created.");
-    }
-  } catch (error) {
-    console.error("Database error:", error.message);
-    console.error("\nMake sure:");
-    console.error("  1. DATABASE_URL is set correctly in .env");
-    console.error("  2. The database is running");
-    console.error("  3. The User table exists (run prisma db push if needed)");
+  // Single upsert: creates the admin, or promotes/refreshes an existing user.
+  // ON CONFLICT keeps this idempotent — running it twice can never create a
+  // duplicate account, and role/isActive are always forced to the admin state.
+  const sql = `
+INSERT INTO "User" (id, name, email, "passwordHash", role, "isActive", "createdAt", "updatedAt")
+VALUES (${sqlString(randomUUID())}, ${sqlString(name)}, ${sqlString(
+    normalizedEmail,
+  )}, ${sqlString(passwordHash)}, 'ADMIN', true, now(), now())
+ON CONFLICT (email) DO UPDATE
+  SET name = EXCLUDED.name,
+      "passwordHash" = EXCLUDED."passwordHash",
+      role = 'ADMIN',
+      "isActive" = true,
+      "updatedAt" = now();
+`;
+
+  if (!runSql(sql)) {
+    console.error("\nMake sure the database is running and the User table exists.");
     process.exit(1);
-  } finally {
-    await prisma.$disconnect();
   }
+
+  console.log("✅ Done! Admin user is ready.");
+  console.log(`   ${normalizedEmail} — role ADMIN, active.`);
+  console.log(
+    "   (An existing account with this email would have been promoted and its password updated.)",
+  );
 }
 
-main();
+main()
+  .then(() => rl.close())
+  .catch((error) => {
+    console.error("Unexpected error:", error?.message ?? error);
+    rl.close();
+    process.exit(1);
+  });

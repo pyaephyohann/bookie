@@ -38,6 +38,9 @@ yarn-error.log*
 # prisma generated client (created by `prisma generate`)
 /generated/prisma
 
+# admin image uploads (local dev storage — production uses an external provider)
+/public/uploads
+
 # vercel
 .vercel
 

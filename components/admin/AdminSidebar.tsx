@@ -44,7 +44,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Books", href: "/admin/catalog/books", icon: BookMarked },
       { label: "Authors", href: "/admin/catalog/authors", icon: Users },
       { label: "Categories", href: "/admin/catalog/categories", icon: FolderOpen },
-      { label: "Publishers", href: "/admin/catalog/publishers", icon: Tag, badge: "Soon" },
+      { label: "Publishers", href: "/admin/catalog/publishers", icon: Tag },
     ],
   },
   {

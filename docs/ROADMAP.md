@@ -28,6 +28,6 @@ The Bookie project is delivered in milestones across the User App and Admin App.
 | A5 | **Order Management** | 🔒 Locked — Order list with search/filter/sort, order detail with customer/items/totals/payment, status management with validated transitions, admin status history |
 | A6 | **Payment Management** | 🔒 Locked — Payment list with search/filter/sort, payment detail with slip display, verify/reject actions, transaction reference, admin audit |
 | A7 | **Content & Promotions** | 🔒 Locked — reading content management (inline HTML/text with sanitize-html, PDF/EPUB/OTHER file URLs, isReadableOnline toggle), supported featured shelves (Trending / Best Sellers / Recommended) with assign/remove/reorder, promotions CRUD with activation/scheduling/book linking; Banner/Hero remains static and unmanaged |
-| A8 | **Admin Polish** | ⏳ Performance, accessibility, deployment hardening |
+| A8 | **Production Polish** | 🔒 Locked — Footer/mobile navigation dead-link fixes, design-system dev page removal, legacy CartContext cleanup, checkout label accessibility, admin focus-style standardization, Cmd+K search mock-removal and navigation launcher, checkout success-color semantic tokens, SearchCommand ARIA fix, admin settings placeholder cleanup, TypeScript type fix |
 
 Current milestone: see `docs/CURRENT_TASK.md`.

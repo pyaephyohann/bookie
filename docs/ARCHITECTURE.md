@@ -40,7 +40,7 @@ app/
   order/complete/OrderCompleteClient.tsx  Client-side completion experience
   track/page.tsx             Order Tracking — BookPass lookup + status timeline (B8)
   track/TrackOrderClient.tsx Client-side tracking experience
-  design-system/page.tsx  Internal reference page for design-token QA
+
   layout.tsx wraps children in `SiteChrome`, which hides Navbar/Footer/FloatingCart on reader and admin routes
   components/layout/SiteChrome.tsx  Client shell — chrome hidden on `/books/[slug]/read` and `/admin`
   admin/login/page.tsx      Admin login (public)
@@ -62,8 +62,8 @@ All pages are server components; interactive pieces are isolated in `"use client
 components/
   ui/           Button, Input/Textarea/Select, Badge (+ status badges), SectionHeading, EmptyState — reusable primitives
   books/        BookCard, BookCover (real image or placeholder art), RecentlyViewed (localStorage shelf), WishlistButton
-  cart/         CartContext (client state), FloatingCart
-  navigation/   Navbar, CategoryMegaMenu (desktop), SearchCommand (⌘K palette), Footer
+  cart/         FloatingCart
+  navigation/   Navbar, CategoryMegaMenu (desktop), SearchCommand (⌘K search launcher), Footer
   theme/        ThemeContext (light/dark/system), ThemeToggle
   layout/       SiteChrome (hides store chrome on reader + admin routes)
   admin/        AdminShell, AdminSidebar, AdminNavbar, AdminProfileMenu, AdminPageHeader, AdminCard — A1
@@ -81,8 +81,8 @@ app/search/SearchResultsClient.tsx        Client-side search results
 
 ## Server / client boundaries (CURRENT — B3)
 
-- **Server components:** `app/layout.tsx`, `app/page.tsx` (Home), `app/books/[slug]/page.tsx`, `app/categories/page.tsx`, `app/categories/[slug]/page.tsx`, `app/authors/page.tsx`, `app/authors/[slug]/page.tsx`, `app/search/page.tsx`, `Footer`, `app/design-system/page.tsx`. Each server page fetches data from `lib/data.ts` via Prisma and passes it as props.
-- **Client components:** anything with state/interactivity — `Navbar`, `CategoryMegaMenu`, `SearchCommand`, `ThemeToggle`, `Hero`, `HeroSlider`, all book-display sections, `BookCard`, `FloatingCart`, `CartContext`, `ThemeContext`, `WishlistButton`, and the `*Client.tsx` components for each B3 route.
+- **Server components:** `app/layout.tsx`, `app/page.tsx` (Home), `app/books/[slug]/page.tsx`, `app/categories/page.tsx`, `app/categories/[slug]/page.tsx`, `app/authors/page.tsx`, `app/authors/[slug]/page.tsx`, `app/search/page.tsx`, `Footer`. Each server page fetches data from `lib/data.ts` via Prisma and passes it as props.
+- **Client components:** anything with state/interactivity — `Navbar`, `CategoryMegaMenu`, `SearchCommand`, `ThemeToggle`, `Hero`, `HeroSlider`, all book-display sections, `BookCard`, `FloatingCart`, `ThemeContext`, `WishlistButton`, and the `*Client.tsx` components for each B3 route.
 
 The boundary is intentional: data crosses from server to client as serialisable props. Prisma is only imported in server components or `lib/data.ts`. Client components receive pre-fetched data and handle interactivity (wishlist toggle, cart add, recently-viewed recording, animations).
 
@@ -91,14 +91,14 @@ The boundary is intentional: data crosses from server to client as serialisable 
 - `app/page.tsx` is an async **server component** that calls `getHomePageData()` from `lib/data.ts` and passes plain, JSON-safe props down to the (client) section components.
 - `lib/data.ts` is the single discovery data layer. It runs **Prisma queries** against the existing schema (books, categories, authors, FeaturedBook merchandising, active Promotions) and maps results to shared UI types (`BookSummary`, `CategorySummary`, `AuthorSummary`, `HeroSlide`).
 - **Fallback strategy (documented, explicit):** if the database has no PUBLISHED books, is unreachable, or a query fails, the whole page falls back to the mock catalogue from `lib/mock-data.ts` via adapters in `lib/data.ts`. The Home page is therefore never broken by an empty dev database. No fake database records are created.
-- Sections no longer import mock data directly — they receive `books` / `categories` / `authors` / `slides` props from the server. Remaining direct mock usage is confined to B1 foundations: the navbar Categories mega-menu, the ⌘K search palette (mock results), and the BookPass demo card.
+- Sections no longer import mock data directly — they receive `books` / `categories` / `authors` / `slides` props from the server. Remaining direct mock usage is confined to B1 foundations: the navbar Categories mega-menu and the BookPass demo card. The ⌘K search palette no longer shows mock results — it navigates to the real `/search` page.
 - **Hero:** slides are a small **typed static configuration** (not CMS/database-driven in B2) — see `lib/mock-data.ts` `MOCK_HERO_SLIDES`, consumed via the `HeroSlide` type.
 - The page is statically prerendered at build time (`○`); data is baked at build. `PLANNED:` ISR/revalidation and dynamic merchandising (B10).
 
 ## State management (CURRENT — B4)
 
 - **Theme:** `ThemeContext` — `useSyncExternalStore` over `localStorage` + `matchMedia("(prefers-color-scheme: dark)")`, with a pre-paint inline init script in the layout to avoid theme flash. Storage key: `bookie-theme`.
-- **Cart:** `lib/cart.ts` — `useSyncExternalStore` over `localStorage` (key `bookie:cart`). Stores an array of `CartItem` objects with `bookId`, `slug`, `title`, `author`, `coverImage`, `price`, `quantity`. Max 99 per item. Actions: `addItem`, `updateQuantity`, `removeItem`, `clearCart`. Derived: `totalItems`, `subtotal`. SSR-safe (returns empty during server render). Used by: `FloatingCart`, `Navbar` (badge count), `BookCard` (Add to Cart), `BookDetailClient` (Add to Cart), `NewReleases` (Add to Cart), `/cart` page. **Replaced** old `CartContext` (which had no persistence and no item data).
+- **Cart:** `lib/cart.ts` — `useSyncExternalStore` over `localStorage` (key `bookie:cart`). Stores an array of `CartItem` objects with `bookId`, `slug`, `title`, `author`, `coverImage`, `price`, `quantity`. Max 99 per item. Actions: `addItem`, `updateQuantity`, `removeItem`, `clearCart`. Derived: `totalItems`, `subtotal`. SSR-safe (returns empty during server render). Used by: `FloatingCart`, `Navbar` (badge count), `BookCard` (Add to Cart), `BookDetailClient` (Add to Cart), `NewReleases` (Add to Cart), `/cart` page.
 - **Recently viewed:** `lib/recently-viewed.ts` — client-side localStorage list of book ids (key `bookie:recently-viewed`, max 12, deduped, most-recent-first). Recorded on book detail page visit via `recordRecentlyViewed()`. Home section reads via `useSyncExternalStore`.
 - **Wishlist:** `lib/wishlist.ts` — client-side localStorage set of book ids (key `bookie:wishlist`, max 100). Toggle via `toggleWishlist()`. `WishlistButton` component uses `useSyncExternalStore` for SSR-safe reads. Active on book cards and book detail pages.
 

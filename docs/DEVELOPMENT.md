@@ -110,7 +110,7 @@ Do **not** claim a check passed unless it actually passed.
 - **Hydration-safe URLs:** never build a display URL from `window` during render (server HTML would differ from client hydration). Display the canonical relative URL (`/track?pass=...`) and construct the absolute URL only inside the copy event handler where `window` exists. `lib/cart.ts`-style `useSyncExternalStore` snapshots follow the same rule for state.
 - **UTC-fixed date formatting:** use `toLocaleString` with an explicit `timeZone: "UTC"` so server-render and client hydration produce identical strings.
 - **Minimal data exposure on public pages:** the tracking page passes only items, totals, statuses, and payment method/amount/status to the client. Customer contact fields (phone, email, shipping address) are not selected at all.
-- **Footer placeholder links:** B1-era `#/route` hash placeholders in the Footer are not real routes; when a milestone makes a route real, update the corresponding footer entry to a `next/link` `Link` (plain `<a>` to a real route trips `no-html-link-for-pages`).
+- **Footer links:** A8 cleaned up all placeholder `#/route` hash links in the Footer. All footer links now point to real routes (`/search`, `/categories`, `/authors`, `/track`). When adding new routes, update the corresponding footer entry.
 
 ## B9 learnings (online reading)
 

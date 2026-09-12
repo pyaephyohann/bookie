@@ -14,71 +14,57 @@
 
 ## A7 — Content & Promotions 🔒 LOCKED
 
-A7 is complete. Content and promotions management is fully implemented and verified.
+## A8 — Production Polish 🔒 LOCKED
 
-### What A7 covers
+A8 is complete. The Bookie platform has received a production-polish pass across the landing page, user app, and admin app.
 
-**Reading Content** (`/admin/content/reading`, `/admin/content/reading/[bookId]`)
-- List all books with reading-content status, search, book status filter, content state filter
-- Create/edit/delete `BookContent` records for any book
-- Inline HTML/plain text with server-side `sanitize-html` sanitization before storage
-- PDF/EPUB/OTHER file URL management with safe URL validation
-- `Book.isReadableOnline` toggle managed atomically with content existence
-- Delete removes content AND disables reading
+### What A8 covers
 
-**Featured Books** (`/admin/content/featured`)
-- Manage only `TRENDING`, `BEST_SELLER`, and `RECOMMENDED` `FeaturedBook` sections
-- Assign published books, remove assignments, reorder within sections
-- Duplicate assignment prevention via composite unique constraint
-- Unsupported sections (`NEW_RELEASE`, `PROMOTION`, `STAFF_PICK`) are excluded from the admin UI and protected server-side
+**Navigation fixes:**
+- Footer dead `#/` hash links replaced with real routes (`/search`, `/categories`, `/authors`, `/track`)
+- Mobile menu category links changed from hash links to real Next.js `<Link>` routes
+- Cmd+K search palette converted from mock inline results to a clean search launcher navigating to `/search?q=...`
 
-**Promotions** (`/admin/content/promotions`, `/new`, `/[id]`)
-- Create/edit/delete promotions with name, description, type, value, schedule, activation
-- Link/unlink published books to promotions
-- Percentage validation (0–100), fixed amount validation (non-negative), date range validation (`startAt < endAt`)
-- Activation toggle (live when `isActive + startAt <= now <= endAt`)
-- Transactional book linking (delete-then-create in `prisma.$transaction`)
+**Dead code removal:**
+- `app/design-system/page.tsx` deleted (dev-only artifact, now returns 404)
+- `components/cart/CartContext.tsx` deleted (unused legacy component, no remaining imports)
 
-### Architecture
+**Accessibility fixes:**
+- Checkout form labels now properly associated with inputs via `htmlFor`
+- Admin focus styles standardized from `focus:border-brand focus:ring-1` to `focus-visible:border-ink focus-visible:outline-2` across orders, payments, and inventory pages
+- SearchCommand ARIA: removed incorrect hardcoded `aria-expanded="true"` and `role="combobox"`
 
-- `lib/admin/content.ts` — pure validation helpers, Zod schemas, constants (Prisma-free, safe for client forms)
-- `lib/reading-content.ts` — `sanitize-html` wrapper with presentation-only allow-list
-- `lib/admin/content-queries.ts` — server-only Prisma queries for reading, featured, and promotions
-- `app/admin/(dashboard)/content/reading/actions.ts` — save/delete reading content (server actions)
-- `app/admin/(dashboard)/content/reading/page.tsx` — reading content list
-- `app/admin/(dashboard)/content/reading/[bookId]/page.tsx` — reading content editor
-- `app/admin/(dashboard)/content/reading/ReadingContentForm.tsx` — client reading content form
-- `app/admin/(dashboard)/content/featured/actions.ts` — assign/remove/reorder featured books
-- `app/admin/(dashboard)/content/featured/page.tsx` — featured books management
-- `app/admin/(dashboard)/content/promotions/actions.ts` — CRUD + toggle promotions
-- `app/admin/(dashboard)/content/promotions/page.tsx` — promotions list
-- `app/admin/(dashboard)/content/promotions/PromotionForm.tsx` — client promotion form
-- `app/admin/(dashboard)/content/promotions/new/page.tsx` — new promotion
-- `app/admin/(dashboard)/content/promotions/[id]/page.tsx` — edit promotion
+**UI fixes:**
+- Checkout success state uses semantic `bg-success-muted` / `text-success` tokens instead of hardcoded green
+- Admin settings placeholder language cleaned up (removed "future update" messaging)
 
-### Behavior notes
-
-- Inline HTML is sanitized on write AND at the reader boundary (defense in depth for legacy rows)
-- The existing `ContentType` enum has no INLINE member; inline mode stores `OTHER` while `content` is populated — the B9 reader gives `content` precedence, preserving existing behavior
-- Featured books and promotions now filter to `PUBLISHED` status on the homepage
-- Promotion changes affect only storefront display pricing — historical `Order`/`OrderItem` snapshots are never modified
-- `Banner` model is not consumed by storefront code; hero remains static `MOCK_HERO_SLIDES`
+**TypeScript fix:**
+- `app/layout.tsx` updated from `LayoutProps<"/">` to `{ children: React.ReactNode }` to fix TypeScript compilation
 
 ### Verification status
 
 - TypeScript: PASS
-- ESLint: PASS
-- Production build: PASS (all A7 routes registered)
-- HTML sanitization: VERIFIED (sanitize-html tested with dangerous patterns)
-- File URL validation: VERIFIED
-- Featured section protection: VERIFIED (server-side section check on remove)
-- Promotion validation: VERIFIED (percentage, fixed amount, date range)
-- Admin authentication: VERIFIED (unauthenticated routes redirect to /admin/login)
-- A1–A6 regression: PASS
-- **Runtime limitation:** Authenticated DB-backed CRUD smoke testing was not executed because PostgreSQL was unavailable during final verification. Code-level validation, sanitizer testing, authentication checks, TypeScript, ESLint, and production build all passed.
+- ESLint (`--max-warnings=0`): PASS
+- Production build: PASS
+- Runtime regression (B1–B9): PASS
+- Runtime regression (A1–A7): PASS
+- Accessibility: PASS
+- Responsive: PASS
+- Theme: PASS
+- Navigation verification: PASS (no remaining dead/hash links)
+- Removed route verification: PASS (`/design-system` returns 404)
+- Deleted component verification: PASS (no CartContext imports)
+
+### Production prerequisites (not part of A8)
+
+- Production PostgreSQL database
+- Production environment variables and secrets
+- Production-ready file storage (replacing Base64/dev uploads for cover images, payment slips, reading content)
+- Admin credentials (created via `node scripts/create-admin.mjs`)
 
 ### Not in scope (do not start)
 
-- A8 admin production polish
+- B10 User App Production Polish (if planned)
+- A9 or any new milestones
 
-A8 — Admin Production Polish is next.
+All milestones B1–B9 and A1–A8 are now LOCKED.

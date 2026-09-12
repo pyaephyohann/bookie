@@ -186,6 +186,15 @@ Do **not** claim a check passed unless it actually passed.
 - **Decimal conversion:** Prisma returns `Decimal` objects for money fields. Convert with `Number()` before passing to client components. Use `formatMoney()` from `lib/admin/catalog.ts` for display.
 - **Payment status filter with "No payment" option:** orders without any `Payment` record need a special filter case (`payments: { none: {} }`) rather than filtering on payment status field.
 
+## A7 learnings (content & promotions)
+
+- **Keep admin scope tied to storefront consumers:** manage only `FeaturedBook` sections that `lib/data.ts` actually reads (TRENDING, BEST_SELLER, RECOMMENDED). New releases and promotions are computed; STAFF_PICK has no current consumer. Do not build dead controls.
+- **BookContent has one blob and no inline enum:** the admin form uses an `INLINE` presentation mode but persists the existing `OTHER` enum with `content` populated and `fileUrl` null. The B9 reader checks content first, so no schema change is needed. PDF/EPUB/OTHER file modes persist only a validated `fileUrl`.
+- **Sanitize admin-authored HTML with a real sanitizer:** `sanitize-html` runs server-side before `BookContent.content` is stored, with a small formatting allow-list and safe URL schemes. The reader sanitizes again as defense in depth for legacy rows; never replace this with regex stripping or trust `dangerouslySetInnerHTML` alone.
+- **Promotion pricing stays in the storefront data layer:** validate percentage values from 0–100 and non-negative fixed amounts, require `startAt < endAt`, and preserve `lib/data.ts` rounding, flooring, active-window, and first-promotion-wins behavior. Promotion edits do not touch historical Order/OrderItem snapshots.
+- **Join-table edits are transactional:** promotion book links are replaced inside the same transaction as promotion fields, while FeaturedBook assignments respect `@@unique([bookId, section])` and reorder by server-controlled `sortOrder`.
+- **Banner is not a storefront feature yet:** `Banner` has no current consumer, and the hero is still static `MOCK_HERO_SLIDES`; do not make it database-driven as part of A7.
+
 ## A6 learnings (payment management)
 
 - **Multiple payments per order:** an Order may have multiple Payment records (e.g., rejected then resubmitted). The payment list must list individual Payment records, not assume one order = one payment. Use `payment.order.bookPass` and `payment.order.customerName` via relation, not from the Payment model directly.

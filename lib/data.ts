@@ -227,6 +227,7 @@ async function fetchFromDatabase(): Promise<HomePageData | null> {
       take: 6,
     }),
     prisma.featuredBook.findMany({
+      where: { book: { status: "PUBLISHED" } },
       include: { book: { include: bookInclude } },
       orderBy: { sortOrder: "asc" },
     }),
@@ -236,7 +237,13 @@ async function fetchFromDatabase(): Promise<HomePageData | null> {
         startAt: { lte: new Date() },
         endAt: { gte: new Date() },
       },
-      include: { books: { include: { book: { include: bookInclude } }, take: 8 } },
+      include: {
+        books: {
+          where: { book: { status: "PUBLISHED" } },
+          include: { book: { include: bookInclude } },
+          take: 8,
+        },
+      },
       orderBy: { createdAt: "desc" },
       take: 6,
     }),

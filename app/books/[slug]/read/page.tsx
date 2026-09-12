@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { isSafeReadingFileUrl } from "@/lib/admin/content";
+import { sanitizeReaderContent } from "@/lib/reading-content";
 import { ReaderClient, type ReaderBookData } from "./ReaderClient";
 
 interface ReaderPageProps {
@@ -63,6 +65,14 @@ export default async function ReaderPage({ params }: ReaderPageProps) {
       (!record.readingContent.content && !record.readingContent.fileUrl)
     ) {
       unavailableReason = "no-content";
+    } else if (
+      record.readingContent.fileUrl &&
+      !record.readingContent.content &&
+      !isSafeReadingFileUrl(record.readingContent.fileUrl)
+    ) {
+      // Defense in depth for legacy rows: admin writes validate file URLs, but
+      // the public reader must never pass an arbitrary stored URL to the client.
+      unavailableReason = "no-content";
     } else {
       book = {
         slug: record.slug,
@@ -70,7 +80,9 @@ export default async function ReaderPage({ params }: ReaderPageProps) {
         authors: record.authors.map((a) => a.author.name),
         contentType: record.readingContent.contentType,
         fileUrl: record.readingContent.fileUrl,
-        content: record.readingContent.content,
+        content: record.readingContent.content
+          ? sanitizeReaderContent(record.readingContent.content)
+          : null,
       };
     }
   } catch (error) {

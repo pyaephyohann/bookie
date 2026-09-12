@@ -239,7 +239,7 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Bootstrap:** `scripts/create-admin.mjs` — interactive script to create or promote admin users. Run it with `node scripts/create-admin.mjs` from the repo root. It does not import the app's Prisma client (that client is generated as TypeScript and plain Node cannot load it); it writes one idempotent upsert through the project's own Prisma CLI (`prisma db execute`), so `DATABASE_URL` resolves from `.env` exactly like the app. Passwords are scrypt-hashed, masked on a TTY, and never printed.
 - **Environment:** `BOOKIE_AUTH_SECRET` — HMAC signing key for session cookies.
 - **Prisma schema:** unchanged — existing `User` model with `UserRole` enum (ADMIN/STAFF) is sufficient.
-- **Navigation:** the Catalog and Inventory links resolve to real routes; Orders/Payments/Content/Analytics still show "Soon" badges.
+- **Navigation:** the Catalog, Inventory, Orders, Payments, and A7 Content links resolve to real routes; Analytics still shows a "Soon" badge.
 
 ## Admin Catalog (CURRENT — A3)
 
@@ -302,6 +302,18 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Security:** every page and action calls `requireAdmin()` server-side. Atomic conditional UPDATE prevents concurrent duplicate transitions. Client UI is never trusted.
 - **Feedback:** verification/rejection redirects with `?notice=verified` or `?notice=rejected`. Invalid transitions return user-friendly error messages.
 - **Prisma schema:** unchanged — no migration, no new models or fields.
+
+## Admin Content & Promotions (CURRENT — A7)
+
+- **Routes:** `/admin/content/reading` and `/admin/content/reading/[bookId]` manage the existing one-to-one `BookContent` record; `/admin/content/featured` manages only `TRENDING`, `BEST_SELLER`, and `RECOMMENDED`; `/admin/content/promotions`, `/new`, and `/[id]` manage `Promotion` and `BookPromotion`.
+- **Server/client boundary:** pages and Prisma queries are server-only; `ReadingContentForm` and `PromotionForm` are small client forms using `useActionState`. Every mutation calls `requireAdmin()` before validation/database work.
+- **Reading representation:** the schema has no inline enum. The admin's `INLINE` UI mode stores sanitized HTML/plain text in `BookContent.content`, sets `fileUrl` to null, and uses the existing `OTHER` enum value because the B9 reader gives inline `content` precedence. PDF/EPUB/OTHER modes store only a validated root-relative or HTTP(S) `fileUrl` with the matching existing `ContentType` enum.
+- **HTML security:** `lib/reading-content.ts` uses `sanitize-html` with a presentation-only allow-list (reader headings, paragraphs, lists, links, images, emphasis, quotes, code, and tables), safe attributes, and HTTP(S)/mailto URL schemes. Sanitization happens before writes and again at the reader boundary for legacy rows; unsafe tags, event handlers, and executable schemes are discarded. Inline content is limited to 10 MB.
+- **Featured shelves:** `lib/data.ts` consumes `FeaturedBook` for Trending, Best Sellers, and Recommended (with existing fallbacks). New Releases is computed from `Book.publishedAt`; Promotions are computed from active `Promotion` rows; Staff Pick currently has no storefront consumer. A7 does not expose controls for those three unsupported/computed sections.
+- **Promotion behavior:** `lib/data.ts` remains the pricing source of truth: percentage uses `original * (1 - value / 100)`, fixed amount uses `Math.max(original - value, 0)`, then rounds to two decimals; active means `isActive` plus `startAt <= now <= endAt`, and the existing created-date order/first-seen behavior determines the first promotion for a duplicated book. A7 only changes display-time merchandising; Order and OrderItem snapshots are untouched.
+- **Banner/Hero:** the `Banner` model is currently not consumed by storefront code. The home hero remains the static `MOCK_HERO_SLIDES` configuration, so A7 deliberately does not create Banner CRUD or connect the hero to the database.
+- **Revalidation:** content, FeaturedBook, and Promotion mutations revalidate the relevant admin page and storefront home; reading mutations also revalidate the book detail and reader routes.
+- **Prisma schema:** unchanged — A7 uses existing models and relations; no migration or new field is required.
 
 ## Conventions
 

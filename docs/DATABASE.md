@@ -121,3 +121,13 @@ B9 added the online reader (`/books/[slug]/read`), all **read-only** and server-
 - **Reader state:** reading position and font/width settings live in `localStorage` (client-side, keyed by slug) — deliberately NOT a database model, because Bookie guests read without an account.
 
 No writes, no new tables, no schema changes — the existing `Book` + `BookContent` models fully support online reading.
+
+## A7 usage (CURRENT — writes, no schema change)
+
+A7 uses the existing content and merchandising models without migrations:
+
+- **Reading content:** `BookContent.bookId` remains the one-to-one key. Inline HTML/plain text is stored in `content` with `fileUrl = null`; because `ContentType` has no inline member, the admin stores the valid `OTHER` enum value while the B9 reader gives non-empty `content` precedence. PDF/EPUB/OTHER entries store a validated root-relative or HTTP(S) `fileUrl` and leave `content` null. `Book.isReadableOnline` is the visibility toggle. Inline HTML is sanitized server-side with `sanitize-html` before storage and again at the reader boundary for legacy rows.
+- **Featured books:** only the storefront-consumed `TRENDING`, `BEST_SELLER`, and `RECOMMENDED` `FeaturedBook` sections are administered. The existing `@@unique([bookId, section])` constraint prevents duplicate assignments and `sortOrder` controls shelf order. `NEW_RELEASE` is computed from `Book.publishedAt`, `PROMOTION` from active `Promotion` rows, and `STAFF_PICK` has no current storefront consumer.
+- **Promotions:** `Promotion` and `BookPromotion` are edited transactionally. Percentage values are limited to 0–100; fixed amounts are non-negative; `startAt < endAt`; and linked books must be published. `lib/data.ts` remains the pricing source of truth, so promotion changes affect only current storefront display data and never alter snapshotted `Order`/`OrderItem` prices.
+
+No new models, fields, enum values, or migrations were introduced.

@@ -10,6 +10,7 @@ const MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
   archived: { tone: "success", text: "Archived. The item is no longer published." },
   restored: { tone: "success", text: "Restored to draft." },
   deleted: { tone: "success", text: "Deleted successfully." },
+  duplicate: { tone: "error", text: "That book is already assigned to this featured shelf." },
   renamed: { tone: "success", text: "Publisher renamed across all books." },
   cleared: { tone: "success", text: "Publisher cleared from all books." },
   "in-use": {

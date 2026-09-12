@@ -58,9 +58,9 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: "Content",
     items: [
-      { label: "Reading Content", href: "/admin/content/reading", icon: BookOpen, badge: "Soon" },
-      { label: "Featured Books", href: "/admin/content/featured", icon: Star, badge: "Soon" },
-      { label: "Promotions", href: "/admin/content/promotions", icon: Tag, badge: "Soon" },
+      { label: "Reading Content", href: "/admin/content/reading", icon: BookOpen },
+      { label: "Featured Books", href: "/admin/content/featured", icon: Star },
+      { label: "Promotions", href: "/admin/content/promotions", icon: Tag },
     ],
   },
   {

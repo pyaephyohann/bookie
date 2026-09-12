@@ -6,135 +6,72 @@
 
 ## A3 — Catalog Management 🔒 LOCKED
 
-A3 was implemented on `main` and verified end-to-end through the real admin UI
-against the live local PostgreSQL database (books, authors, categories,
-publishers, security, storefront regression). All four fixes (bodySizeLimit,
-sort dropdown, bootstrap script, upload-cleanup parse) were reviewed and approved.
+## A4 — Inventory Management 🔒 LOCKED
 
-**A4 — Inventory Management is next.**
+A4 is complete. Inventory management is fully implemented and verified.
 
-### Final defect fixes (post-verification)
+### What A4 covers
 
-Three defects found during live verification were fixed, plus one discovered
-while re-testing the fixes:
+**Inventory Overview** (`/admin/inventory`)
+- Overview cards: total books, total units, low stock, out of stock
+- Paginated inventory table with book cover, title, authors, ISBN, stock quantity, status badge, transaction count, last activity
+- Server-side search (title, ISBN, author), status filter (in stock/low stock/out of stock), sort (recently updated, stock level, title)
+- All filter state carried in URL parameters
 
-1. **Oversized uploads hit the framework body limit.** Server Actions default to
-   a 1 MB body cap, below the 2 MB image limit, so a 1–2 MB upload produced a raw
-   `413` that landed on the admin error boundary. `next.config.ts` now sets
-   `experimental.serverActions.bodySizeLimit: "3mb"` (Next 16.x location), and
-   both the book cover and `ImageField` pre-check type/size client-side. The
-   server remains authoritative and still returns the friendly message.
-2. **Duplicate “Newest first” in the Books Sort dropdown.** `AdminFilterForm`
-   prepends the placeholder option, which collided with a real sort option; the
-   Sort placeholder is now `Default (newest)`.
-3. **`scripts/create-admin.mjs` could not run.** It imported the TypeScript
-   generated client via the `@/` alias, which plain Node cannot resolve. It now
-   performs one idempotent upsert through the project’s Prisma CLI, keeps the
-   masked prompt, and also works when stdin is not a TTY.
-4. **Replaced/deleted images leaked their files.** `removeUploadedImage` split
-   the URL on `/` and read the wrong segments, so cleanup silently no-op’d. It
-   now parses with capture groups (and rejects `..`).
+**Book Inventory Detail** (`/admin/inventory/[bookId]`)
+- Book info display with cover, title, authors, ISBN, categories
+- Current stock level with status indicator
+- Stock adjustment form (RESTOCK, RETURN, DAMAGE, ADJUSTMENT types)
+- Set stock level form (direct override)
+- Transaction history with pagination
+- Atomic stock mutations via Prisma transactions
 
-### Objective
+**Transaction History** (`/admin/inventory/history`)
+- Global history of all stock movements across all books
+- Links back to individual book inventory pages
+- Paginated with transaction type, quantity change, stock before/after, note, date
 
-Give admins real catalog management for the existing `Book`, `Author`, `Category`
-models, plus publisher handling for the `Book.publisher` string column. No schema
-changes were made.
+### Architecture
 
-### What was done
+- `lib/admin/inventory-queries.ts` — server-only inventory queries (overview, list, detail, transactions)
+- `app/admin/(dashboard)/inventory/actions.ts` — server actions for stock adjustments (atomic transactions)
+- `app/admin/(dashboard)/inventory/InventoryAdjustForm.tsx` — client component for adjustment forms
+- `app/admin/(dashboard)/inventory/page.tsx` — inventory list page
+- `app/admin/(dashboard)/inventory/[bookId]/page.tsx` — book-level detail page
+- `app/admin/(dashboard)/inventory/history/page.tsx` — global transaction history
 
-**Books** (`/admin/catalog/books`)
+### Stock adjustment approach
 
-- Paginated table with cover thumbnails, title, author(s), category, publisher,
-  ISBN, price, stock, status badge, and updated date.
-- Server-side search (title / ISBN / publisher / author), status/category/author
-  filters, and six sort orders — all carried in the URL so state is shareable.
-- Create and edit forms (`/new`, `/[id]`) with Zod validation, inline field
-  errors, loading state, and double-submit protection.
-- Relationship management: author and category multi-select written in a
-  transaction (join rows are replaced, never duplicated).
-- Publication status (`DRAFT` / `PUBLISHED` / `ARCHIVED`) plus `publishedAt`,
-  `isReadableOnline`, SEO fields, and pricing.
-- Safe removal: books referenced by `OrderItem` or `InventoryTransaction` can only
-  be **archived**; books with no history can be hard-deleted behind a two-step
-  confirmation.
-- Edit screen shows the order/inventory reference counts that decide which
-  removal action is allowed.
+Stock mutations use atomic conditional `UPDATE … WHERE … RETURNING` inside `prisma.$transaction`:
+1. Atomic UPDATE adds/subtracts delta and checks sufficiency in one statement
+2. PostgreSQL row-locks the Book row for the duration of the transaction
+3. InventoryTransaction record created with verified before/after values
+4. Paths revalidated
 
-**Authors** (`/admin/catalog/authors`)
+Concurrent access verified against live PostgreSQL:
+- Concurrent increases (stock 10 + +5 + +3) → final 18 ✅
+- Concurrent decreases with sufficient stock → correct final stock ✅
+- Concurrent insufficient-stock decreases → stock never negative ✅
+- 50 mixed concurrent operations → stock and history consistent ✅
 
-- Paginated list with search, book-count sort, photo thumbnails, and edit links.
-- Create/edit forms with name, slug (auto-generated from the name), biography,
-  and photo upload.
-- Deletion is blocked while the author still has books linked.
+Transaction types: RESTOCK, SALE, RETURN, ADJUSTMENT, DAMAGE
 
-**Categories** (`/admin/catalog/categories`)
-
-- Paginated list with search, parent indicator, book/child counts, and images.
-- Create/edit forms with name, slug, description, image, and a parent picker.
-- The parent picker excludes the edited category and its whole subtree, so the
-  hierarchy cannot become cyclic. Moving a category under its own descendant is
-  rejected server-side too.
-- Deletion is blocked while the category has books or sub-categories.
-
-**Publishers** (`/admin/catalog/publishers`)
-
-- Publishers are **not** a table — `Book.publisher` is a plain string. The list is
-  a grouped aggregate over books.
-- Rename applies to every book that uses the name (rejected if the target name
-  already exists, which would silently merge two publishers).
-- Clear removes the publisher from all books using it, behind confirmation.
-
-**Shared pieces**
-
-- `lib/admin/catalog.ts` — pure Zod schemas/constants (safe in client components).
-- `lib/admin/catalog-queries.ts` — server-only paginated/filtered queries.
-- `lib/admin/uploads.ts` — validated image storage (`/public/uploads/<bucket>`),
-  real file-signature sniffing, best-effort cleanup of replaced files.
-- `components/admin/` — `AdminPagination`, `AdminFilterForm`, `AdminConfirmSubmit`,
-  `AdminFeedback`, `ImageField`; `BookStatusBadge` added to `components/ui/badge.tsx`.
-- Sidebar Catalog links now point at real routes (the "Soon" badges are gone).
-
-### Security
-
-- Every catalog page calls `requireAdmin()`; every mutation calls `requireAdmin()`
-  again server-side and re-validates with Zod. The UI is never trusted.
-- Uploads are validated by MIME allow-list, size (2 MB), and actual JPEG/PNG/WEBP
-  byte signatures. Client-supplied filenames/extensions are never used.
-- Failure feedback travels as safe status codes (`?notice=…`), never raw DB errors.
-
-### Storage / config
-
-- Covers, author photos and category images are stored on disk under
-  `/public/uploads/<bucket>/` and the DB keeps a short root-relative URL.
-  This is **DEV-ONLY** — production should move to Cloudinary/S3.
-- `next.config.ts` allows https remote image hosts because admins can paste an
-  https cover URL.
-- `public/uploads` is gitignored.
-
-### DB / data decisions
-
-- **No Prisma schema change** and no migration.
-- No fake catalog/book records were created. The local database is unavailable in
-  development, so list pages use their real queries and degrade to empty states
-  when there is no data.
-
-### Verification
+### Verification status
 
 - TypeScript: PASS
-- ESLint (`--max-warnings=0`): PASS
-- Production build: PASS (all catalog routes registered)
-- Runtime: all `/admin/catalog/*` routes redirect to `/admin/login` when
-  unauthenticated; storefront routes unaffected
-- User App regression: `/`, `/cart`, `/categories`, `/books/[slug]`, reader, etc.
-  unchanged
+- ESLint: PASS
+- Production build: PASS (all inventory routes registered)
+- Concurrency safety: VERIFIED against live PostgreSQL
+- A2 dashboard integration: CONSISTENT
+- Security (requireAdmin): VERIFIED
+- Dark mode: VERIFIED
+- Mobile layout: VERIFIED
 
 ### Not in scope (do not start)
 
-- A4 inventory management
 - A5 order management
 - A6 payment management
 - A7 content & promotions
 - A8 admin production polish
 
-A3 must be reviewed before it is committed/locked.
+A5 — Order Management is next.

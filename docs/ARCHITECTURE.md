@@ -239,7 +239,7 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Bootstrap:** `scripts/create-admin.mjs` — interactive script to create or promote admin users. Run it with `node scripts/create-admin.mjs` from the repo root. It does not import the app's Prisma client (that client is generated as TypeScript and plain Node cannot load it); it writes one idempotent upsert through the project's own Prisma CLI (`prisma db execute`), so `DATABASE_URL` resolves from `.env` exactly like the app. Passwords are scrypt-hashed, masked on a TTY, and never printed.
 - **Environment:** `BOOKIE_AUTH_SECRET` — HMAC signing key for session cookies.
 - **Prisma schema:** unchanged — existing `User` model with `UserRole` enum (ADMIN/STAFF) is sufficient.
-- **Navigation:** the Catalog links resolve to real routes; Inventory/Orders/Payments/Content/Analytics still show "Soon" badges.
+- **Navigation:** the Catalog and Inventory links resolve to real routes; Orders/Payments/Content/Analytics still show "Soon" badges.
 
 ## Admin Catalog (CURRENT — A3)
 
@@ -254,6 +254,22 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Feedback:** destructive/normal mutations redirect with a safe status code (`?notice=created`), which `AdminFeedback` maps to a human message. Raw database errors are never surfaced.
 - **Uploads (DEV-ONLY):** validated images are written to `public/uploads/<bucket>/` and the database stores only a short root-relative URL, so images stay out of PostgreSQL and `next/image` needs no loader. Validation is MIME allow-list + 2 MB cap + real JPEG/PNG/WEBP byte-signature sniffing; client filenames are never trusted. Production should swap the storage layer for Cloudinary/S3.
 - **Revalidation:** catalog mutations call `revalidatePath("/", "layout")` so storefront pages (home, book detail, category, author) reflect status/price/relationship edits.
+- **Prisma schema:** unchanged — no migration, no new models or fields.
+
+## Admin Inventory (CURRENT — A4)
+
+- **Route structure:** `/admin/inventory` (list), `/admin/inventory/[bookId]` (book detail + adjustments), `/admin/inventory/history` (global transaction history).
+- **Module split:** `lib/admin/inventory-queries.ts` is server-only (Prisma queries for overview, list, detail, transactions). Server actions live in `app/admin/(dashboard)/inventory/actions.ts`. The adjustment form is a client component in `InventoryAdjustForm.tsx`.
+- **Inventory model:** there is no separate Inventory table — stock lives on `Book.stockQuantity` as an integer. `InventoryTransaction` records the history of all stock movements.
+- **Overview:** `getInventoryOverview()` returns total books, total units, low-stock count (≤5), and out-of-stock count (0), filtering out ARCHIVED books.
+- **List:** `listInventory()` provides server-side search (title, ISBN, author), status filter (IN_STOCK/LOW_STOCK/OUT_OF_STOCK), sort (updated, stock, title), and pagination. All state lives in URL params.
+- **Stock adjustments:** mutations use `prisma.$transaction` for atomicity — read current stock, validate, write new stock + InventoryTransaction in one transaction. Types: RESTOCK, RETURN (increase), DAMAGE (decrease), ADJUSTMENT (manual delta).
+- **Set stock:** direct override that sets `Book.stockQuantity` to an exact value, creating an ADJUSTMENT transaction if the value changed.
+- **Concurrency safety:** stock mutations use atomic conditional `UPDATE … WHERE … RETURNING` statements, so the arithmetic and the insufficient-stock check run inside PostgreSQL. The row is locked for the duration of the transaction, serializing concurrent adjustments. The previous read-then-write pattern was proven unsafe (49/50 trials lost an update) and replaced with this atomic approach.
+- **Transaction history:** `InventoryTransaction` stores bookId, type, quantity, stockBefore, stockAfter, note, and createdAt. Book-level and global history pages are paginated.
+- **A2 integration:** the existing `getInventoryAlerts()` in `lib/admin/dashboard-queries.ts` queries the same `Book.stockQuantity` field, so dashboard alerts remain consistent with the inventory management screens.
+- **Security:** every page and action calls `requireAdmin()` server-side. Validation uses Zod schemas. The client form is never trusted.
+- **Feedback:** adjustments redirect with `?notice=adjusted` or `?notice=updated`. Insufficient stock and negative stock errors are returned as user-friendly messages.
 - **Prisma schema:** unchanged — no migration, no new models or fields.
 
 ## Conventions

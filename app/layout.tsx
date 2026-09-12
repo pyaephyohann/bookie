@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "Bookie is an independent online bookstore. Browse, read online and order without an account — track everything with your BookPass.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${caveat.variable} h-full antialiased`} suppressHydrationWarning>
       <head>

@@ -146,7 +146,7 @@ export default async function OrdersPage({
               type="search"
               defaultValue={q}
               placeholder="BookPass, customer, phone, email…"
-              className="w-full rounded-control border border-border bg-surface py-2 pl-9 pr-3 text-body-sm text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-control border border-border bg-surface py-2 pl-9 pr-3 text-body-sm text-text placeholder:text-text-muted focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             />
           </div>
         </div>
@@ -158,7 +158,7 @@ export default async function OrdersPage({
             id="status"
             name="status"
             defaultValue={status}
-            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             {ORDER_STATUS_OPTIONS.map((f) => (
               <option key={f.value} value={f.value}>
@@ -175,7 +175,7 @@ export default async function OrdersPage({
             id="paymentStatus"
             name="paymentStatus"
             defaultValue={paymentStatus}
-            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             {PAYMENT_STATUS_OPTIONS.map((f) => (
               <option key={f.value} value={f.value}>
@@ -192,7 +192,7 @@ export default async function OrdersPage({
             id="sort"
             name="sort"
             defaultValue={sort}
-            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             {ORDER_SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

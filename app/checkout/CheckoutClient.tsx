@@ -125,8 +125,8 @@ export function CheckoutClient() {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="w-full max-w-md rounded-card border border-border bg-surface p-8 text-center shadow-sm"
         >
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-            <Check className="size-8 text-green-600 dark:text-green-400" aria-hidden />
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-success-muted">
+            <Check className="size-8 text-success" aria-hidden />
           </div>
           <h1 className="text-h2 font-bold text-text">Order Created!</h1>
           <p className="mt-2 text-body-lg text-text-secondary">
@@ -217,6 +217,7 @@ export function CheckoutClient() {
                 label="Full Name"
                 required
                 error={fieldErrors.customerName}
+                htmlFor="customerName"
               >
                 <Input
                   id="customerName"
@@ -234,6 +235,7 @@ export function CheckoutClient() {
                 label="Phone Number"
                 required
                 error={fieldErrors.phone}
+                htmlFor="phone"
               >
                 <Input
                   id="phone"
@@ -252,6 +254,7 @@ export function CheckoutClient() {
                 label="Email"
                 required
                 error={fieldErrors.email}
+                htmlFor="email"
               >
                 <Input
                   id="email"
@@ -269,6 +272,7 @@ export function CheckoutClient() {
               <FormField
                 label="Alternate Phone Number"
                 error={fieldErrors.alternatePhone}
+                htmlFor="alternatePhone"
               >
                 <Input
                   id="alternatePhone"
@@ -287,6 +291,7 @@ export function CheckoutClient() {
                 label="Shipping Address"
                 required
                 error={fieldErrors.shippingAddress}
+                htmlFor="shippingAddress"
               >
                 <Textarea
                   id="shippingAddress"
@@ -304,6 +309,7 @@ export function CheckoutClient() {
               <FormField
                 label="Note"
                 error={fieldErrors.note}
+                htmlFor="note"
               >
                 <Textarea
                   id="note"
@@ -410,16 +416,18 @@ function FormField({
   label,
   required,
   error,
+  htmlFor,
   children,
 }: {
   label: string;
   required?: boolean;
   error?: string;
+  htmlFor?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label htmlFor={undefined} className="mb-1.5 block text-body-sm font-medium text-text">
+      <label htmlFor={htmlFor} className="mb-1.5 block text-body-sm font-medium text-text">
         {label}
         {required && <span className="ml-0.5 text-red-500" aria-hidden>*</span>}
         {required && <span className="sr-only"> (required)</span>}

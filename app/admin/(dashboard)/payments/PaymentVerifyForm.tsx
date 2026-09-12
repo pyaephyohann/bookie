@@ -66,7 +66,7 @@ export function PaymentVerifyForm({
                   rows={2}
                   maxLength={500}
                   placeholder="Why is this payment being rejected?"
-                  className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text placeholder:text-text-muted focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
                 />
               </div>
               <Button
@@ -118,7 +118,7 @@ export function PaymentVerifyForm({
               type="text"
               maxLength={200}
               placeholder="e.g. TXN-123456"
-              className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text placeholder:text-text-muted focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             />
           </div>
           <Button type="submit" variant="secondary" size="sm" className="w-full">

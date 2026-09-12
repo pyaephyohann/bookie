@@ -117,7 +117,7 @@ export default async function InventoryPage({
               type="search"
               defaultValue={q}
               placeholder="Title, ISBN, or author…"
-              className="w-full rounded-control border border-border bg-surface py-2 pl-9 pr-3 text-body-sm text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-control border border-border bg-surface py-2 pl-9 pr-3 text-body-sm text-text placeholder:text-text-muted focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             />
           </div>
         </div>
@@ -129,7 +129,7 @@ export default async function InventoryPage({
             id="status"
             name="status"
             defaultValue={status}
-            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             {INVENTORY_STATUS_FILTERS.map((f) => (
               <option key={f.value} value={f.value}>
@@ -146,7 +146,7 @@ export default async function InventoryPage({
             id="sort"
             name="sort"
             defaultValue={sort}
-            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body-sm text-text focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             {INVENTORY_SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

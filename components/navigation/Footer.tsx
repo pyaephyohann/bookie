@@ -2,18 +2,13 @@ import { AtSign, BookOpen, Mail, MessageCircle, Play } from "lucide-react";
 import Link from "next/link";
 
 const EXPLORE = [
-  { label: "Books", href: "#/books" },
-  { label: "Categories", href: "#/categories" },
-  { label: "Authors", href: "#/authors" },
-  { label: "New Releases", href: "#/new-releases" },
-  { label: "Best Sellers", href: "#/best-sellers" },
+  { label: "Books", href: "/search" },
+  { label: "Categories", href: "/categories" },
+  { label: "Authors", href: "/authors" },
 ];
 
 const HELP = [
   { label: "Track Order", href: "/track" },
-  { label: "Shipping", href: "#/help/shipping" },
-  { label: "Contact", href: "#/help/contact" },
-  { label: "FAQ", href: "#/help/faq" },
 ];
 
 const SOCIALS = [

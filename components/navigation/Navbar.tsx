@@ -271,14 +271,14 @@ function MobileMenu({ onNavigate }: { onNavigate: () => void }) {
           >
             <div className="grid grid-cols-2 gap-1 pb-1 pl-3">
               {MOCK_CATEGORIES.map((c) => (
-                <a
+                <Link
                   key={c.name}
-                  href={`#/categories/${c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  href={`/categories/${c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
                   onClick={onNavigate}
                   className="rounded-control px-3 py-2 text-body-sm text-text-secondary hover:bg-surface-muted hover:text-text"
                 >
                   {c.name}
-                </a>
+                </Link>
               ))}
             </div>
           </motion.div>

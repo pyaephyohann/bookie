@@ -45,7 +45,7 @@ export default async function AdminSettingsPage() {
             </div>
             <div className="border-t border-border pt-3">
               <p className="text-caption text-text-muted">
-                Password and profile editing will be available in a future update.
+                Contact the system administrator to update account details.
               </p>
             </div>
           </div>
@@ -67,8 +67,8 @@ export default async function AdminSettingsPage() {
               Theme is managed through the top-right theme toggle (Light / Dark / System).
             </p>
             <div className="rounded-control border border-border bg-surface-muted p-3">
-              <p className="text-caption text-text-muted">
-                Additional appearance settings (custom branding, logo upload) will be available in a future update.
+              <p className="text-body-sm text-text-secondary">
+                Theme switching is available through the top-right toggle.
               </p>
             </div>
           </div>
@@ -98,12 +98,7 @@ export default async function AdminSettingsPage() {
                 Role-based access control. Admin and Staff roles are supported.
               </p>
             </div>
-            <div className="rounded-control border border-border bg-surface-muted p-3">
-              <p className="text-body-sm font-medium text-text">API Keys</p>
-              <p className="text-caption text-text-muted">
-                API key management will be available in a future update.
-              </p>
-            </div>
+
           </div>
         </AdminCard>
       </div>

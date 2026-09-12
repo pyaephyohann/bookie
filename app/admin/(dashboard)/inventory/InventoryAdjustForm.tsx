@@ -66,7 +66,7 @@ export function InventoryAdjustForm({ bookId, currentStock }: InventoryAdjustFor
               max={100000}
               defaultValue={currentStock}
               required
-              className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body text-text placeholder:text-text-muted focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             />
             {setState.fieldErrors?.quantity && (
               <p className="mt-1 text-caption text-error">{setState.fieldErrors.quantity}</p>
@@ -82,7 +82,7 @@ export function InventoryAdjustForm({ bookId, currentStock }: InventoryAdjustFor
               type="text"
               maxLength={500}
               placeholder="Reason for change"
-              className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body text-text placeholder:text-text-muted focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             />
           </div>
           <PendingButton>Set Stock</PendingButton>
@@ -125,7 +125,7 @@ export function InventoryAdjustForm({ bookId, currentStock }: InventoryAdjustFor
                 max={100000}
                 defaultValue={1}
                 required
-                className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body text-text placeholder:text-text-muted focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
               />
               {adjustState.fieldErrors?.quantity && (
                 <p className="mt-1 text-caption text-error">{adjustState.fieldErrors.quantity}</p>
@@ -141,7 +141,7 @@ export function InventoryAdjustForm({ bookId, currentStock }: InventoryAdjustFor
                 type="text"
                 maxLength={500}
                 placeholder="Reason for adjustment"
-                className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-control border border-border bg-surface px-3 py-2 text-body text-text placeholder:text-text-muted focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
               />
             </div>
             <PendingButton>Adjust</PendingButton>

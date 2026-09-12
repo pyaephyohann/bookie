@@ -1,16 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, BookOpen, PackageSearch, Search, SearchX } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PackageSearch, Search } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MiniBookCover } from "@/components/books/BookCover";
-import { MOCK_BOOKS, MOCK_CATEGORIES } from "@/lib/mock-data";
 
 /**
- * Global search command palette (mock results only — no backend search yet).
+ * Global search command palette.
  * Opens with Cmd/Ctrl+K or the navbar search button; closes with Escape.
- * Results are mock/static and links are placeholders for future pages.
+ * On Enter, navigates to the real /search page with the query.
  */
 
 interface SearchCommandProps {
@@ -46,19 +44,6 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
 
   const router = useRouter();
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const books = q
-      ? MOCK_BOOKS.filter(
-          (b) => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q),
-        )
-      : MOCK_BOOKS.slice(0, 4);
-    const categories = q
-      ? MOCK_CATEGORIES.filter((c) => c.name.toLowerCase().includes(q))
-      : MOCK_CATEGORIES.slice(0, 5);
-    return { books, categories };
-  }, [query]);
-
   // Navigate to /search?q=... on Enter
   const handleSearch = useCallback(() => {
     const trimmed = query.trim();
@@ -74,8 +59,6 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
     },
     [handleSearch],
   );
-
-  const empty = results.books.length === 0 && results.categories.length === 0;
 
   return (
     <motion.div
@@ -111,9 +94,6 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
           <input
             ref={inputRef}
             type="text"
-            role="combobox"
-            aria-expanded="true"
-            aria-controls="bookie-search-results"
             aria-label="Search books, authors and categories"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -126,101 +106,31 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
           </kbd>
         </div>
 
-        {/* Results */}
-        <div id="bookie-search-results" role="listbox" aria-label="Results" className="max-h-[50vh] overflow-y-auto p-2">
-          {empty ? (
-            <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-              <SearchX className="size-8 text-text-disabled" aria-hidden />
-              <p className="text-body font-semibold">No matches for “{query}”</p>
-              <p className="text-caption text-text-muted">
-                Try a different title, author, or category.
-              </p>
-            </div>
-          ) : (
-            <>
-              {results.books.length > 0 && (
-                <ResultGroup label="Books">
-                  {results.books.map((b) => (
-                    <a
-                      key={b.id}
-                      role="option"
-                      aria-selected="false"
-                      href={`/books/${b.slug}`}
-                      onClick={onClose}
-                      className="group flex items-center gap-3 rounded-control p-2 transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted focus-visible:outline-none"
-                    >
-                      <MiniBookCover title={b.title} gradient={b.cover} className="w-8" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-body-sm font-semibold">{b.title}</span>
-                        <span className="block truncate text-caption text-text-muted">
-                          {b.author} · {b.category}
-                        </span>
-                      </span>
-                      <ArrowRight className="size-4 shrink-0 text-text-disabled transition-transform group-hover:translate-x-0.5" aria-hidden />
-                    </a>
-                  ))}
-                </ResultGroup>
-              )}
-
-              {results.categories.length > 0 && (
-                <ResultGroup label="Categories">
-                  {results.categories.map((c) => (
-                    <a
-                      key={c.name}
-                      role="option"
-                      aria-selected="false"
-                      href={`/categories/${slugify(c.name)}`}
-                      onClick={onClose}
-                      className="group flex items-center gap-3 rounded-control p-2 transition-colors hover:bg-surface-muted focus-visible:bg-surface-muted focus-visible:outline-none"
-                    >
-                      <span className="flex size-8 items-center justify-center rounded-md bg-brand-muted text-ink dark:text-brand-on">
-                        <BookOpen className="size-4" aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-body-sm font-semibold">{c.name}</span>
-                        <span className="block text-caption text-text-muted">{c.count} books</span>
-                      </span>
-                      <ArrowRight className="size-4 shrink-0 text-text-disabled transition-transform group-hover:translate-x-0.5" aria-hidden />
-                    </a>
-                  ))}
-                </ResultGroup>
-              )}
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="mt-1 flex w-full items-center gap-3 rounded-control border-t border-border-subtle p-3 text-body-sm text-text-muted transition-colors hover:bg-surface-muted hover:text-text"
-              >
-                <PackageSearch className="size-4 shrink-0" aria-hidden />
-                <span>
-                  Looking for an order?{" "}
-                  <span className="font-semibold text-text">Track it with your BookPass</span>
-                </span>
-                <kbd className="ml-auto rounded-md border border-border bg-surface-muted px-1.5 py-0.5 text-[0.625rem] font-semibold text-text-muted">
-                  ESC
-                </kbd>
-              </button>
-            </>
-          )}
+        {/* Results area - just instructions, no mock results */}
+        <div className="p-6 text-center">
+          <Search className="mx-auto mb-3 size-10 text-text-muted opacity-40" aria-hidden />
+          <p className="text-body font-semibold text-text">Search Bookie</p>
+          <p className="mt-1 text-body-sm text-text-muted">
+            Type a query and press Enter to search books, authors, and categories.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-4 inline-flex items-center gap-2 rounded-control border border-border bg-surface px-4 py-2 text-body-sm text-text-muted transition-colors hover:bg-surface-muted hover:text-text"
+          >
+            <PackageSearch className="size-4" aria-hidden />
+            <span>
+              Looking for an order?{" "}
+              <span className="font-semibold text-text">Track it with your BookPass</span>
+            </span>
+            <kbd className="ml-2 rounded-md border border-border bg-surface-muted px-1.5 py-0.5 text-[0.625rem] font-semibold text-text-muted">
+              ESC
+            </kbd>
+          </button>
         </div>
       </motion.div>
     </motion.div>
   );
-}
-
-function ResultGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-1">
-      <p className="px-2 pb-1 pt-2 text-caption font-bold uppercase tracking-[0.14em] text-text-disabled">
-        {label}
-      </p>
-      <div>{children}</div>
-    </div>
-  );
-}
-
-function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
 function reduceY(): number {

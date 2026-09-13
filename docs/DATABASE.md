@@ -14,7 +14,7 @@
 - Generated client lives in `generated/prisma` (git-ignored); regenerated with `npx prisma generate`.
 - Database state: local `bookie` database, `public` schema, in sync via `prisma db push` (verified with `prisma migrate diff` — no difference). No `prisma/migrations` directory yet; `prisma migrate dev --name init` is the migration path when needed.
 
-## Models (17, CURRENT)
+## Models (18, CURRENT)
 
 | Model | Purpose |
 |---|---|
@@ -34,6 +34,7 @@
 | `BookPromotion` | M2M join: book ↔ promotion |
 | `Banner` | Homepage banner: imageUrl, linkUrl, status, sortOrder, start/end |
 | `FeaturedBook` | Homepage sections (TRENDING/BEST_SELLER/NEW_RELEASE/PROMOTION/STAFF_PICK/RECOMMENDED), unique per (bookId, section), sortOrder |
+| `HeroSlide` | Homepage hero carousel slides (A7.1): eyebrow, title, subtitle, description, imageUrl, tint, linkUrl, optional bookId, isActive, sortOrder, startAt/endAt scheduling |
 | `OrderTrackingToken` | Tracking link/token per order (token unique, optional expiry) |
 
 ## Enums (10, CURRENT)
@@ -51,12 +52,13 @@
 - **Book ↔ Promotion** — M2M via `BookPromotion`, cascade both sides.
 - **Book ↔ InventoryTransaction** — one-to-many, no cascade (ledger preserved).
 - **Book ↔ FeaturedBook** — one-to-many, cascade; `@@unique([bookId, section])`.
+- **Book ↔ HeroSlide** — one-to-many, `onDelete: SetNull` (deleting a book does NOT break hero slides); `bookId` is optional.
 - **Order ↔ OrderItem / Payment / OrderStatusHistory / OrderTrackingToken** — one-to-many, cascade on Order.
 - **Category self-relation** — named `CategoryHierarchy`, optional `parentId`, no cascade (`SetNull` by default).
 - **Unique:** `Book.slug`, `Book.isbn`, `Author.slug`, `Category.slug`, `Order.bookPass`, `OrderTrackingToken.token`, `BookContent.bookId`.
 - **Money:** every currency field is `Decimal @db.Decimal(12, 2)` — never `Float`.
 - **Long text:** `@db.Text` on descriptions, addresses, notes, content.
-- **Indexes:** FK-side indexes on all join tables; `Book` indexed on status/title/createdAt/publishedAt; `Order` on phone/email/status/createdAt; `Promotion` on start/end + isActive; `Banner` on (status, sortOrder) + start/end; `FeaturedBook` on (section, sortOrder); history/ledger tables on (orderId/bookId, createdAt).
+- **Indexes:** FK-side indexes on all join tables; `Book` indexed on status/title/createdAt/publishedAt; `Order` on phone/email/status/createdAt; `Promotion` on start/end + isActive; `Banner` on (status, sortOrder) + start/end; `FeaturedBook` on (section, sortOrder); `HeroSlide` on (isActive, sortOrder) + (startAt, endAt); history/ledger tables on (orderId/bookId, createdAt).
 
 ## Notes
 
@@ -131,3 +133,14 @@ A7 uses the existing content and merchandising models without migrations:
 - **Promotions:** `Promotion` and `BookPromotion` are edited transactionally. Percentage values are limited to 0–100; fixed amounts are non-negative; `startAt < endAt`; and linked books must be published. `lib/data.ts` remains the pricing source of truth, so promotion changes affect only current storefront display data and never alter snapshotted `Order`/`OrderItem` prices.
 
 No new models, fields, enum values, or migrations were introduced.
+
+## A7.1 usage (CURRENT — writes, new model + migration)
+
+A7.1 introduced the `HeroSlide` model and migration for database-driven homepage hero slides:
+
+- **HeroSlide model:** `id`, `eyebrow`, `title`, `subtitle` (Text), `description` (Text), `imageUrl` (required), `tint` (default `#fef9c3`), `linkUrl`, `bookId` (optional FK to `Book`), `isActive` (default true), `sortOrder` (default 0), `startAt`/`endAt` (optional scheduling), `createdAt`, `updatedAt`.
+- **Book relation:** `HeroSlide.bookId` → `Book.id` with `onDelete: SetNull`. Deleting a book sets the hero slide's `bookId` to null — the slide remains visible.
+- **Indexes:** `[isActive, sortOrder]` for efficient homepage queries; `[startAt, endAt]` for scheduling.
+- **Migration:** `prisma/migrations/20260914000000_add_hero_slide_model/migration.sql` — additive only (CREATE TABLE + indexes + FK). No existing data affected.
+- **Homepage query:** `lib/data.ts` queries active, non-expired HeroSlide records sorted by `sortOrder asc, createdAt desc`. Falls back to `MOCK_HERO_SLIDES` when no displayable DB slides exist.
+- **Admin CRUD:** `/admin/content/hero` — list, create, edit, delete, toggle, reorder. Image uploads use the existing centralized pipeline (`resolveImageField` → `saveImageUpload` → `uploadFile` → `optimizeFile` → Cloudinary `hero-slides/` folder).

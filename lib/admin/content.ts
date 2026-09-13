@@ -190,3 +190,67 @@ export function promotionStatusLabel(status: ReturnType<typeof promotionStatus>)
     INACTIVE: "Inactive",
   }[status];
 }
+
+// ── Hero Slides (A7.1) ─────────────────────────────────────────────────────
+
+export const HERO_SLIDE_PAGE_SIZE = 20;
+
+const heroSlideDate = z
+  .string()
+  .trim()
+  .optional()
+  .refine(
+    (value) => !value || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value),
+    "Use a valid date and time",
+  );
+
+export const heroSlideSchema = z
+  .object({
+    id: z.string().trim().max(64).optional(),
+    eyebrow: z.string().trim().max(100, "Eyebrow is too long"),
+    title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
+    subtitle: z.string().trim().max(500, "Subtitle is too long"),
+    description: z.string().trim().max(2_000, "Description is too long"),
+    linkUrl: z.string().trim().max(2_000, "Link URL is too long"),
+    bookId: z.string().trim().max(64).optional().nullable(),
+    tint: z.string().trim().max(20, "Tint is too long"),
+    isActive: z.boolean(),
+    sortOrder: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? Number(value) : 0))
+      .refine((value) => Number.isFinite(value) && value >= 0 && value <= 9999, "Sort order must be 0–9999"),
+    startAt: heroSlideDate,
+    endAt: heroSlideDate,
+  })
+  .superRefine((data, ctx) => {
+    if (data.startAt && data.endAt && data.startAt >= data.endAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["endAt"],
+        message: "End date must be after start date",
+      });
+    }
+  });
+
+export type HeroSlideDateValues = z.infer<typeof heroSlideSchema>;
+
+export type HeroSlideFormValues = z.infer<typeof heroSlideSchema>;
+
+export type HeroSlideStatus = "LIVE" | "SCHEDULED" | "EXPIRED" | "INACTIVE";
+
+export function heroSlideStatus(
+  slide: { isActive: boolean; startAt: Date | string | null | undefined; endAt: Date | string | null | undefined },
+  now = new Date(),
+): HeroSlideStatus {
+  if (!slide.isActive) return "INACTIVE";
+  const current = now.getTime();
+  if (slide.startAt && new Date(slide.startAt).getTime() > current) return "SCHEDULED";
+  if (slide.endAt && new Date(slide.endAt).getTime() < current) return "EXPIRED";
+  return "LIVE";
+}
+
+export function heroSlideStatusLabel(status: HeroSlideStatus): string {
+  return { LIVE: "Live", SCHEDULED: "Scheduled", EXPIRED: "Expired", INACTIVE: "Inactive" }[status];
+}

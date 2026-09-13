@@ -141,6 +141,7 @@ model Book {
 
   // Homepage / merchandising
   featuredItems FeaturedBook[]
+  heroSlides    HeroSlide[]
 
   @@index([status])
   @@index([title])
@@ -470,6 +471,41 @@ model FeaturedBook {
 
   @@unique([bookId, section])
   @@index([section, sortOrder])
+}
+
+// ============================================================
+// HERO SLIDES (A7.1)
+// ============================================================
+
+model HeroSlide {
+  id String @id @default(cuid())
+
+  // Copy
+  eyebrow     String?
+  title       String
+  subtitle    String? @db.Text
+  description String? @db.Text
+
+  // Visual
+  imageUrl String
+  tint     String @default("#fef9c3")
+
+  // Link
+  linkUrl  String?
+  bookId   String?
+  book     Book?   @relation(fields: [bookId], references: [id], onDelete: SetNull)
+
+  // Scheduling
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+  startAt   DateTime?
+  endAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([startAt, endAt])
 }
 
 // ============================================================

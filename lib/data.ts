@@ -61,8 +61,25 @@ export interface AuthorSummary {
   gradient: [string, string];
 }
 
-/** Typed static hero configuration — not CMS-driven in B2. */
-export type HeroSlide = MockHeroSlide;
+/**
+ * Hero slide — served from the database (HeroSlide model) or mocked.
+ * imageUrl: real image URL from Cloudinary (or placeholder gradient).
+ * bookSlug: resolved from bookId for linking.
+ */
+export interface HeroSlide {
+  id: string;
+  eyebrow: string;
+  title: string;
+  author: string;
+  description: string;
+  price: number;
+  compareAtPrice?: number;
+  bookSlug: string;
+  cover: [string, string];
+  tint: string;
+  imageUrl: string;
+  linkUrl: string | null;
+}
 
 export interface HomePageData {
   source: "database" | "mock";
@@ -121,7 +138,41 @@ function toAuthorSummary(author: MockAuthor): AuthorSummary {
   };
 }
 
-const toHeroSlide = (slide: MockHeroSlide): HeroSlide => slide;
+const toHeroSlide = (slide: MockHeroSlide): HeroSlide => ({
+  ...slide,
+  imageUrl: "",
+  linkUrl: null,
+});
+
+/** Map a database HeroSlide row into the UI-facing HeroSlide type. */
+function dbHeroSlideToSlide(
+  slide: {
+    id: string;
+    eyebrow: string | null;
+    title: string;
+    subtitle: string | null;
+    description: string | null;
+    imageUrl: string;
+    tint: string;
+    linkUrl: string | null;
+    book: { slug: string; title: string; price: import("@/generated/prisma/client").Prisma.Decimal; compareAtPrice: import("@/generated/prisma/client").Prisma.Decimal | null } | null;
+  },
+): HeroSlide {
+  return {
+    id: slide.id,
+    eyebrow: slide.eyebrow ?? "Featured",
+    title: slide.title,
+    author: slide.book?.title ?? "",
+    description: slide.subtitle ?? slide.description ?? "",
+    price: slide.book ? Number(slide.book.price) : 0,
+    compareAtPrice: slide.book?.compareAtPrice ? Number(slide.book.compareAtPrice) : undefined,
+    bookSlug: slide.book?.slug ?? "",
+    cover: gradientFor(slide.id),
+    tint: slide.tint,
+    imageUrl: slide.imageUrl,
+    linkUrl: slide.linkUrl,
+  };
+}
 
 function slugify(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -303,9 +354,39 @@ async function fetchFromDatabase(): Promise<HomePageData | null> {
     }
   }
 
+  // Hero slides — query active, non-expired slides from the database.
+  const now = new Date();
+  const dbHeroSlides = await prisma.heroSlide.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { startAt: null },
+        { startAt: { lte: now } },
+      ],
+      AND: [
+        { OR: [{ endAt: null }, { endAt: { gte: now } }] },
+      ],
+    },
+    include: {
+      book: {
+        select: {
+          slug: true,
+          title: true,
+          price: true,
+          compareAtPrice: true,
+        },
+      },
+    },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+  });
+
+  const heroSlides = dbHeroSlides.length > 0
+    ? dbHeroSlides.map(dbHeroSlideToSlide)
+    : MOCK_HERO_SLIDES.map(toHeroSlide);
+
   return {
     source: "database",
-    heroSlides: MOCK_HERO_SLIDES.map(toHeroSlide),
+    heroSlides,
     heroFloating: all.slice(0, 3),
     categories: categories.map((c) => ({
       name: c.name,

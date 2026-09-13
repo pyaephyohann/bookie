@@ -57,7 +57,7 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Feature | Status | Notes |
 |---|---|---|
 | Home page | ✅ | Hero + slider, categories, trending, best sellers, new releases, promotions, featured authors, recommended, recently viewed, read-online, BookPass, final CTA — all discovery sections data-backed (Prisma with mock fallback) |
-| Hero + auto slider | ✅ | 5s autoplay, prev/next, indicators, pause; slides are a typed static config (not CMS-driven) |
+| Hero + auto slider | ✅ | 5s autoplay, prev/next, indicators, pause; slides are database-driven (HeroSlide model) with admin CRUD, scheduling, Cloudinary image uploads, sort order, and active/inactive toggle |
 | Browse Categories (Home) | ✅ | Clickable category cards w/ book counts (Prisma Category or mock) |
 | Trending | ✅ | FeaturedBook section TRENDING; falls back to newest books; mock fallback when DB empty |
 | Best Sellers | ✅ | FeaturedBook section BEST_SELLER; documented placeholder ranking until order data exists |

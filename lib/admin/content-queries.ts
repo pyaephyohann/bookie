@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   FEATURED_SECTION_VALUES,
+  HERO_SLIDE_PAGE_SIZE,
   PROMOTION_PAGE_SIZE,
   READING_PAGE_SIZE,
   type ManagedFeaturedSection,
@@ -338,6 +339,165 @@ export async function getPromotionForEdit(id: string): Promise<PromotionEditData
 }
 
 export async function getPromotionBookOptions(): Promise<{ id: string; title: string; slug: string }[]> {
+  return prisma.book.findMany({
+    where: { status: "PUBLISHED" },
+    orderBy: { title: "asc" },
+    select: { id: true, title: true, slug: true },
+    take: 500,
+  });
+}
+
+// ── Hero Slides (A7.1) ─────────────────────────────────────────────────────
+
+export interface HeroSlideListRow {
+  id: string;
+  eyebrow: string | null;
+  title: string;
+  imageUrl: string;
+  isActive: boolean;
+  sortOrder: number;
+  startAt: string | null;
+  endAt: string | null;
+  bookTitle: string | null;
+}
+
+export interface HeroSlideListFilters {
+  q?: string;
+  status?: string;
+  page?: number;
+}
+
+function heroSlideWhere(filters: HeroSlideListFilters, now: Date): Prisma.HeroSlideWhereInput {
+  const where: Prisma.HeroSlideWhereInput = {};
+  if (filters.q) {
+    where.OR = [
+      { title: { contains: filters.q, mode: "insensitive" } },
+      { eyebrow: { contains: filters.q, mode: "insensitive" } },
+    ];
+  }
+  switch (filters.status) {
+    case "live":
+      where.isActive = true;
+      where.OR = [
+        { startAt: null },
+        { startAt: { lte: now } },
+      ];
+      where.AND = [
+        { OR: [{ endAt: null }, { endAt: { gte: now } }] },
+      ];
+      break;
+    case "scheduled":
+      where.isActive = true;
+      where.startAt = { gt: now };
+      break;
+    case "expired":
+      where.endAt = { lt: now };
+      break;
+    case "inactive":
+      where.isActive = false;
+      break;
+  }
+  return where;
+}
+
+export async function listHeroSlides(filters: HeroSlideListFilters): Promise<Paginated<HeroSlideListRow>> {
+  const page = clampPage(filters.page);
+  const where = heroSlideWhere(filters, new Date());
+
+  const [rows, total] = await Promise.all([
+    prisma.heroSlide.findMany({
+      where,
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      skip: (page - 1) * HERO_SLIDE_PAGE_SIZE,
+      take: HERO_SLIDE_PAGE_SIZE,
+      select: {
+        id: true,
+        eyebrow: true,
+        title: true,
+        imageUrl: true,
+        isActive: true,
+        sortOrder: true,
+        startAt: true,
+        endAt: true,
+        book: { select: { title: true } },
+      },
+    }),
+    prisma.heroSlide.count({ where }),
+  ]);
+
+  return paginate(
+    rows.map((row) => ({
+      id: row.id,
+      eyebrow: row.eyebrow,
+      title: row.title,
+      imageUrl: row.imageUrl,
+      isActive: row.isActive,
+      sortOrder: row.sortOrder,
+      startAt: row.startAt?.toISOString() ?? null,
+      endAt: row.endAt?.toISOString() ?? null,
+      bookTitle: row.book?.title ?? null,
+    })),
+    total,
+    page,
+    HERO_SLIDE_PAGE_SIZE,
+  );
+}
+
+export interface HeroSlideEditData {
+  id: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  imageUrl: string;
+  linkUrl: string;
+  bookId: string | null;
+  tint: string;
+  isActive: boolean;
+  sortOrder: number;
+  startAt: string;
+  endAt: string;
+}
+
+export async function getHeroSlideForEdit(id: string): Promise<HeroSlideEditData | null> {
+  const slide = await prisma.heroSlide.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      eyebrow: true,
+      title: true,
+      subtitle: true,
+      description: true,
+      imageUrl: true,
+      linkUrl: true,
+      bookId: true,
+      tint: true,
+      isActive: true,
+      sortOrder: true,
+      startAt: true,
+      endAt: true,
+    },
+  });
+  if (!slide) return null;
+
+  return {
+    id: slide.id,
+    eyebrow: slide.eyebrow ?? "",
+    title: slide.title,
+    subtitle: slide.subtitle ?? "",
+    description: slide.description ?? "",
+    imageUrl: slide.imageUrl,
+    linkUrl: slide.linkUrl ?? "",
+    bookId: slide.bookId,
+    tint: slide.tint,
+    isActive: slide.isActive,
+    sortOrder: slide.sortOrder,
+    startAt: slide.startAt ? slide.startAt.toISOString().slice(0, 16) : "",
+    endAt: slide.endAt ? slide.endAt.toISOString().slice(0, 16) : "",
+  };
+}
+
+export async function getHeroSlideBookOptions(): Promise<{ id: string; title: string; slug: string }[]> {
   return prisma.book.findMany({
     where: { status: "PUBLISHED" },
     orderBy: { title: "asc" },

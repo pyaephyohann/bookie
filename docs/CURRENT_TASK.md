@@ -14,6 +14,20 @@
 
 ## A7 — Content & Promotions 🔒 LOCKED
 
+### A7.1 Hero Slides ✅ COMPLETE
+
+Hero Slides are now database-driven and manageable from the Admin app.
+
+**What was implemented:**
+- `HeroSlide` Prisma model with scheduling (startAt/endAt), sort order, active/inactive state, optional book link
+- Admin CRUD at `/admin/content/hero` — list, create, edit, delete, toggle, reorder
+- Cloudinary image uploads via the existing centralized upload pipeline (`hero-slides/` folder)
+- Homepage data layer queries active/scheduled HeroSlide records from Prisma with mock fallback
+- HeroSlider renders real Cloudinary images when available, falls back to gradient placeholders
+- 5-second auto-slide, animations, and responsive behavior preserved
+
+**Next A7 task:** A7.2 Featured Sections
+
 ## A8 — Production Polish 🔒 LOCKED
 
 A8 is complete. The Bookie platform has received a production-polish pass across the landing page, user app, and admin app.

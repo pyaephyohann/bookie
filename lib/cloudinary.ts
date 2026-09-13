@@ -52,7 +52,7 @@ function getCloudinary() {
 
 // ── Upload Folders ─────────────────────────────────────────────────────────
 
-export type UploadFolder = "covers" | "authors" | "categories" | "payment-slips" | "reading";
+export type UploadFolder = "covers" | "authors" | "categories" | "payment-slips" | "reading" | "hero-slides";
 
 const FOLDER_MAP: Record<UploadFolder, string> = {
   covers: "covers",
@@ -60,6 +60,7 @@ const FOLDER_MAP: Record<UploadFolder, string> = {
   categories: "categories",
   "payment-slips": "payment-slips",
   reading: "reading",
+  "hero-slides": "hero-slides",
 };
 
 function getFolderPath(folder: UploadFolder): string {

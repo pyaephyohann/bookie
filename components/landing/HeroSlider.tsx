@@ -85,7 +85,7 @@ export function HeroSlider({ slides }: { slides: HeroSlide[] }) {
                 </p>
                 <div className="flex flex-wrap items-center gap-4 pt-1">
                   <motion.a
-                    href={`/books/${slide.bookSlug}`}
+                    href={slide.linkUrl || (slide.bookSlug ? `/books/${slide.bookSlug}` : "#")}
                     whileHover={reduce ? undefined : { scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     className="rounded-control bg-ink px-5 py-2.5 text-button text-text-inverse transition-colors hover:bg-ink-hover"
@@ -155,7 +155,16 @@ export function HeroSlider({ slides }: { slides: HeroSlide[] }) {
                 transition={{ duration: reduce ? 0.2 : 0.5, ease: [0.21, 0.47, 0.32, 0.98] }}
                 className="w-44 sm:w-52"
               >
-                <BookCover title={slide.title} author={slide.author} gradient={slide.cover} />
+                {slide.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={slide.imageUrl}
+                    alt={slide.title}
+                    className="w-full rounded-card object-cover shadow-md"
+                  />
+                ) : (
+                  <BookCover title={slide.title} author={slide.author} gradient={slide.cover} />
+                )}
               </motion.div>
             </AnimatePresence>
             <motion.div

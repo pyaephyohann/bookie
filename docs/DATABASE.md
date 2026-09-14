@@ -142,5 +142,15 @@ A7.1 introduced the `HeroSlide` model and migration for database-driven homepage
 - **Book relation:** `HeroSlide.bookId` → `Book.id` with `onDelete: SetNull`. Deleting a book sets the hero slide's `bookId` to null — the slide remains visible.
 - **Indexes:** `[isActive, sortOrder]` for efficient homepage queries; `[startAt, endAt]` for scheduling.
 - **Migration:** `prisma/migrations/20260914000000_add_hero_slide_model/migration.sql` — additive only (CREATE TABLE + indexes + FK). No existing data affected.
+
+## A7.3 usage (CURRENT — verified, no schema change)
+
+A7.3 verified the existing Promotions admin and homepage integration as production-ready:
+
+- **Admin CRUD:** `/admin/content/promotions` — list (search, status filter, sort, pagination), create, edit, delete, toggle active/inactive. All mutations call `requireAdmin()` and use `promotionSchema` for Zod validation.
+- **Book assignment:** `BookPromotion` join rows are replaced transactionally (delete-then-create in `$transaction`). Published-book validation is enforced server-side. Duplicate prevention uses `@@unique` on the composite key.
+- **Homepage data flow:** `lib/data.ts` queries `Promotion` records where `isActive = true AND startAt <= now AND endAt >= now`, includes linked `BookPromotion → Book` records, and applies `applyPromotion()` for display pricing. First-promotion-wins deduplication prevents double-discounting.
+- **Server-authoritative checkout:** `app/checkout/actions.ts` uses `book.price` from the database directly. No promotion logic exists in checkout. `Order.discount` is always 0.
+- **Revalidation:** promotion mutations revalidate `/` and `/admin/content/promotions`.
 - **Homepage query:** `lib/data.ts` queries active, non-expired HeroSlide records sorted by `sortOrder asc, createdAt desc`. Falls back to `MOCK_HERO_SLIDES` when no displayable DB slides exist.
 - **Admin CRUD:** `/admin/content/hero` — list, create, edit, delete, toggle, reorder. Image uploads use the existing centralized pipeline (`resolveImageField` → `saveImageUpload` → `uploadFile` → `optimizeFile` → Cloudinary `hero-slides/` folder).

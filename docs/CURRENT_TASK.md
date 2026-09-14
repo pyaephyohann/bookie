@@ -43,6 +43,25 @@ Staff Picks is now a fully managed Featured Section.
 
 **Next A7 task:** A7.3 Promotions
 
+### A7.3 Promotions ✅ COMPLETE
+
+Promotions is a fully verified, production-ready content-management feature.
+
+**What was verified and confirmed:**
+- Admin CRUD at `/admin/content/promotions` — list, create, edit, delete, toggle active/inactive
+- List page with search (name/description), status filter (live/scheduled/expired/inactive/enabled), sort (newest/oldest/start-desc/value-desc/value-asc), pagination, desktop table + mobile cards
+- Create/edit form with name, description, discount type (percentage/fixed amount), value, start/end date/time, active/inactive toggle, and book assignment (checkbox list)
+- Zod validation: required name, value 0–9999999 with up to 2 decimals, percentage 0–100, startAt < endAt, published book requirement
+- Transactional book link replacement (delete-then-create in `$transaction`)
+- Toggle active/inactive with revalidation
+- Delete with confirmation and cascade deletion of BookPromotion records
+- Homepage integration: active promotions filtered by `isActive + startAt <= now <= endAt`, `applyPromotion()` for display pricing, first-promotion-wins deduplication
+- Server-authoritative checkout pricing preserved — no promotion logic in `app/checkout/actions.ts`
+- No schema changes required — existing `Promotion` and `BookPromotion` models sufficient
+- No regressions to A7.1 Hero Slides or A7.2 Staff Picks
+
+**Next A7 task:** A7.4 Reading Content
+
 ## A8 — Production Polish 🔒 LOCKED
 
 A8 is complete. The Bookie platform has received a production-polish pass across the landing page, user app, and admin app.

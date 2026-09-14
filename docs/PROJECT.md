@@ -62,7 +62,7 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | Trending | ✅ | FeaturedBook section TRENDING; falls back to newest books; mock fallback when DB empty |
 | Best Sellers | ✅ | FeaturedBook section BEST_SELLER; documented placeholder ranking until order data exists |
 | New Releases | ✅ | Sorted by `publishedAt` (nulls last); mock fallback uses the mock's NEW flags |
-| Promotion Items | ✅ | Active Promotions (PERCENTAGE/FIXED_AMOUNT) applied to linked books; mock fallback uses compareAtPrice deals |
+| Promotion Items | ✅ | Active Promotions (PERCENTAGE/FIXED_AMOUNT) applied to linked books; admin CRUD at /admin/content/promotions with search/filter/sort, percentage/fixed-amount discounts, start/end scheduling, book assignment, active/inactive toggle; homepage integration with applyPromotion display pricing |
 | Featured Authors | ✅ | Prisma Authors with book counts + photo/gradient avatars; mock fallback |
 | Staff Picks | ✅ | FeaturedBook section STAFF_PICK; admin-managed at /admin/content/featured; falls back to deterministic picks when empty; homepage renders between Promotions and Popular Authors |
 | Recommended For You | ✅ | Lightweight deterministic pick (featured RECOMMENDED or curated fallback) — NOT AI/personalised |

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Eye, Key, User } from "lucide-react";
+import Link from "next/link";
+import { Eye, Key, User, Users } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminCard } from "@/components/admin/AdminCard";
 import { requireAdmin } from "@/lib/auth";
@@ -43,6 +44,17 @@ export default async function AdminSettingsPage() {
               <p className="text-caption text-text-muted">Role</p>
               <p className="text-body font-medium text-text">{user.role}</p>
             </div>
+            {user.role === "ADMIN" && (
+              <div className="border-t border-border pt-3">
+                <Link
+                  href="/admin/settings/users"
+                  className="inline-flex items-center gap-1.5 text-body-sm font-medium text-brand hover:underline"
+                >
+                  <Users className="size-3.5" aria-hidden />
+                  Manage admin & staff accounts
+                </Link>
+              </div>
+            )}
             <div className="border-t border-border pt-3">
               <p className="text-caption text-text-muted">
                 Contact the system administrator to update account details.

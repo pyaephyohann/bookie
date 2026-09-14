@@ -10,6 +10,7 @@ import {
   CreditCard,
   FolderOpen,
   Home,
+  Image,
   LayoutDashboard,
   Package,
   Settings,
@@ -58,6 +59,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: "Content",
     items: [
+      { label: "Hero Slides", href: "/admin/content/hero", icon: Image },
       { label: "Reading Content", href: "/admin/content/reading", icon: BookOpen },
       { label: "Featured Books", href: "/admin/content/featured", icon: Star },
       { label: "Promotions", href: "/admin/content/promotions", icon: Tag },

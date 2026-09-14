@@ -231,11 +231,11 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Session:** httpOnly cookie with signed JSON payload (`{ userId }`). 7-day expiry. `sameSite: lax` for CSRF protection.
 - **Authorization:** `requireAdmin()` runs in server components/layouts. Reads session cookie, validates user exists and is active, checks role (ADMIN or STAFF), redirects to `/admin/login` if unauthorized. No client-side role checks.
 - **Admin shell:** `AdminShell` composes `AdminSidebar` (persistent on desktop, drawer on mobile) + `AdminNavbar` (sticky top bar with sidebar trigger, branding, ThemeToggle, profile menu) + content area.
-- **Navigation:** organized by section (Dashboard, Catalog, Inventory, Orders, Payments, Content, Analytics, Settings). Unimplemented routes show "Soon" badges.
+- **Navigation:** organized by section (Dashboard, Catalog, Inventory, Orders, Payments, Content, Analytics, Settings). Content section includes Hero Slides, Reading Content, Featured Books, and Promotions (A7.1 added Hero Slides to sidebar). Unimplemented routes show "Soon" badges.
 - **SiteChrome:** hides Navbar/Footer/FloatingCart on `/admin` routes — same pattern as reader routes.
 - **Login:** `/admin/login` — public route with `LoginForm` using `useActionState` for pending/error states.
 - **Dashboard:** `/admin` — real analytics with KPIs, revenue/orders/categories/payments charts, inventory alerts, recent orders.
-- **Settings:** `/admin/settings` — shell with Admin Account, Appearance, Security sections.
+- **Settings:** `/admin/settings` — shell with Admin Account, Appearance, Security sections. ADMIN users also see a link to User Management. User management at `/admin/settings/users` supports list, create, edit, activate/deactivate, and password reset (A8).
 - **Bootstrap:** `scripts/create-admin.mjs` — interactive script to create or promote admin users. Run it with `node scripts/create-admin.mjs` from the repo root. It does not import the app's Prisma client (that client is generated as TypeScript and plain Node cannot load it); it writes one idempotent upsert through the project's own Prisma CLI (`prisma db execute`), so `DATABASE_URL` resolves from `.env` exactly like the app. Passwords are scrypt-hashed, masked on a TTY, and never printed.
 - **Environment:** `BOOKIE_AUTH_SECRET` — HMAC signing key for session cookies.
 - **Prisma schema:** unchanged — existing `User` model with `UserRole` enum (ADMIN/STAFF) is sufficient.
@@ -315,6 +315,21 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Hero Slides (A7.1):** the `HeroSlide` model is database-driven and managed via `/admin/content/hero`. Admin CRUD supports create, edit, delete, toggle active/inactive, and reorder. Image uploads use the existing centralized pipeline (`resolveImageField` → `saveImageUpload` → `uploadFile` → `optimizeFile` → Cloudinary `hero-slides/` folder). Scheduling uses `isActive`, `startAt`, and `endAt` — a slide is displayable when `isActive = true` AND (`startAt` is null OR `startAt <= now`) AND (`endAt` is null OR `endAt >= now`). The homepage queries active/scheduled HeroSlide records from Prisma, ordered by `sortOrder asc, createdAt desc`. Falls back to `MOCK_HERO_SLIDES` when no displayable DB slides exist. The `Banner` model remains unused by storefront code.
 - **Revalidation:** content, FeaturedBook, and Promotion mutations revalidate the relevant admin page and storefront home; reading mutations also revalidate the book detail and reader routes.
 - **Prisma schema:** unchanged — A7 uses existing models and relations; no migration or new field is required.
+
+## Admin Settings & User Management (CURRENT — A8)
+
+- **Routes:** `/admin/settings` (settings overview), `/admin/settings/users` (user list), `/admin/settings/users/new` (create user), `/admin/settings/users/[id]` (edit user + password reset).
+- **Module split:** `lib/admin/users.ts` is PURE (Zod schemas, constants, `fd()`, `toFieldErrors()`) and safe to import from client components. `lib/admin/user-queries.ts` is server-only (Prisma). Server actions live in `app/admin/(dashboard)/settings/users/actions.ts`.
+- **Sidebar navigation:** Hero Slides link added to `AdminSidebar.tsx` under the Content section (first item), using the `Image` icon from lucide-react.
+- **User list:** `listUsers()` provides server-side search (name, email), role filter (ADMIN/STAFF), and pagination. Desktop table + mobile cards pattern. Shows role badge, active/inactive status, and created date.
+- **Create user:** Zod validation for name, email (unique), role (ADMIN/STAFF), password (min 8 chars) with confirmation. Passwords hashed with existing scrypt implementation from `lib/auth.ts`. Duplicate email prevention server-side.
+- **Edit user:** name, email, role changes with same validation. Email uniqueness check excluding self.
+- **Activate/deactivate:** two-step confirmation via `AdminConfirmSubmit`. Server-side guards: self-deactivation blocked, last-active-admin lockout prevention.
+- **Password reset:** ADMIN-only internal reset. Uses existing `hashPassword()` from `lib/auth.ts`. No email-based recovery.
+- **Authorization:** all user management actions call `requireAdmin()` and additionally check `currentUser.role === 'ADMIN'` server-side. STAFF users cannot access user management routes or perform any user mutations. Authorization is enforced server-side, not just UI-hidden.
+- **AdminFeedback:** extended with user-management notice codes (`activated`, `deactivated`, `self-deactivate`, `last-admin`, `permission-denied`).
+- **Settings page:** ADMIN users see a "Manage admin & staff accounts" link in the Admin Account card.
+- **Prisma schema:** unchanged — the existing `User` model with `UserRole` enum (ADMIN/STAFF), `passwordHash`, `isActive`, and timestamps is sufficient.
 
 ## Conventions
 

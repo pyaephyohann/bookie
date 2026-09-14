@@ -10,6 +10,21 @@ const MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
   archived: { tone: "success", text: "Archived. The item is no longer published." },
   restored: { tone: "success", text: "Restored to draft." },
   deleted: { tone: "success", text: "Deleted successfully." },
+  activated: { tone: "success", text: "User activated." },
+  deactivated: { tone: "success", text: "User deactivated." },
+  "password-reset": { tone: "success", text: "Password has been reset." },
+  "self-deactivate": {
+    tone: "error",
+    text: "You cannot deactivate your own account.",
+  },
+  "last-admin": {
+    tone: "error",
+    text: "Cannot deactivate the only active administrator.",
+  },
+  "permission-denied": {
+    tone: "error",
+    text: "Only administrators can perform this action.",
+  },
   duplicate: { tone: "error", text: "That book is already assigned to this featured shelf." },
   renamed: { tone: "success", text: "Publisher renamed across all books." },
   cleared: { tone: "success", text: "Publisher cleared from all books." },

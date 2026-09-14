@@ -206,3 +206,13 @@ Do **not** claim a check passed unless it actually passed.
 - **Transaction reference is not unique:** multiple payments can have the same reference. No uniqueness constraint. The field is optional and admin-editable.
 - **Payment form uses dual useActionState:** the `PaymentVerifyForm` uses three separate `useActionState` hooks for verify, reject, and reference update actions. Each has its own state and dispatch.
 - **Slip URL validation:** when displaying `slipUrl`, only render if it exists and looks like a data URL (starts with `data:image/`). Do not blindly trust arbitrary URL values.
+
+## A8 learnings (admin settings & user management)
+
+- **Reuse existing auth infrastructure:** password hashing uses `hashPassword()` from `lib/auth.ts` (scrypt), never a second implementation. Session management, cookie handling, and `requireAdmin()` remain unchanged.
+- **Pure validation module pattern:** `lib/admin/users.ts` follows the same PURE module pattern as `lib/admin/catalog.ts` — Zod schemas, constants, and form helpers with no Prisma import, safe for client components.
+- **Server-side authorization is mandatory:** STAFF users cannot access user management at all — both the page and every action check `currentUser.role === 'ADMIN'` server-side. Do not rely only on hiding UI buttons.
+- **Self-deactivation prevention:** an admin must not be able to deactivate their own account. Check `target.id === currentUser.id && target.isActive` server-side.
+- **Last-active-admin lockout prevention:** before deactivating or changing the role of an active ADMIN, count other active admins. If the count would drop to zero, reject the action. This prevents a single-admin system from becoming locked out.
+- **AdminFeedback extension:** when adding new notice codes, add them to the existing `MESSAGES` object in `AdminFeedback.tsx` rather than creating a separate feedback system. Group new codes logically near related existing codes.
+- **Hero Slides sidebar link:** the sidebar iterates over a static `NAV_SECTIONS` array. Adding a new item means inserting it into the appropriate section's `items` array with the correct icon, label, and href. The active-state logic (`isActive`) uses `pathname.startsWith(href)` — ensure the new route doesn't collide with existing prefixes.

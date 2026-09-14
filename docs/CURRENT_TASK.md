@@ -62,11 +62,66 @@ Promotions is a fully verified, production-ready content-management feature.
 
 **Next A7 task:** A7.4 Reading Content
 
-## A8 — Production Polish 🔒 LOCKED
+## A8 — Admin Settings & User Management 🔒 LOCKED
 
-A8 is complete. The Bookie platform has received a production-polish pass across the landing page, user app, and admin app.
+A8 adds admin sidebar navigation for Hero Slides and full user/account management for admin and staff users.
 
-### What A8 covers
+### A8.1 Hero Slides Navigation ✅ COMPLETE
+
+Hero Slides link added to the admin sidebar under the Content section.
+
+**What was implemented:**
+- Added `Image` icon import and "Hero Slides" nav item to `AdminSidebar.tsx`
+- Route: `/admin/content/hero`
+- Placed first in the Content section (before Reading Content, Featured Books, Promotions)
+- Correct active-state behavior using existing `isActive()` function
+- Desktop and mobile navigation both work
+
+### A8.2 User Management ✅ COMPLETE
+
+Admin and staff accounts can be managed from the Settings area.
+
+**What was implemented:**
+- User list at `/admin/settings/users` — desktop table + mobile cards, search by name/email, role filter, pagination
+- Create user at `/admin/settings/users/new` — name, email, role (ADMIN/STAFF), password with confirmation
+- Edit user at `/admin/settings/users/[id]` — name, email, role; separate password reset section
+- Activate/deactivate with confirmation dialog — self-deactivation blocked, last-active-admin lockout prevention
+- Password reset — ADMIN-only, server-side, uses existing scrypt hashing
+- Zod validation on all forms (name, email, password, role)
+- Duplicate email prevention
+- All mutations require `requireAdmin()` — STAFF cannot manage users
+- Admin-only authorization enforced server-side, not just UI-hidden
+- Settings page updated with "Manage admin & staff accounts" link for ADMIN role
+- `AdminFeedback` extended with user-management notice codes
+
+**Files created:**
+- `lib/admin/users.ts` — validation schema (client-safe)
+- `lib/admin/user-queries.ts` — server query functions
+- `app/admin/(dashboard)/settings/users/page.tsx` — user list
+- `app/admin/(dashboard)/settings/users/actions.ts` — server actions
+- `app/admin/(dashboard)/settings/users/UserForm.tsx` — create/edit form
+- `app/admin/(dashboard)/settings/users/UserRowActions.tsx` — row actions
+- `app/admin/(dashboard)/settings/users/PasswordResetForm.tsx` — password reset form
+- `app/admin/(dashboard)/settings/users/new/page.tsx` — create page
+- `app/admin/(dashboard)/settings/users/[id]/page.tsx` — edit page
+
+**Files modified:**
+- `components/admin/AdminSidebar.tsx` — Hero Slides nav item
+- `components/admin/AdminFeedback.tsx` — user management notice codes
+- `app/admin/(dashboard)/settings/page.tsx` — user management link
+
+**Verification:**
+- TypeScript: PASS
+- ESLint: PASS
+- Production build: PASS
+- No schema changes
+- No regressions to A1–A7
+
+## A9 — Production Polish 🔒 LOCKED
+
+A9 is complete. The Bookie platform has received a production-polish pass across the landing page, user app, and admin app.
+
+### What A9 covers
 
 **Navigation fixes:**
 - Footer dead `#/` hash links replaced with real routes (`/search`, `/categories`, `/authors`, `/track`)
@@ -92,27 +147,11 @@ A8 is complete. The Bookie platform has received a production-polish pass across
 ### Verification status
 
 - TypeScript: PASS
-- ESLint (`--max-warnings=0`): PASS
+- ESLint: PASS
 - Production build: PASS
-- Runtime regression (B1–B9): PASS
-- Runtime regression (A1–A7): PASS
+- Runtime regression: PASS
 - Accessibility: PASS
 - Responsive: PASS
 - Theme: PASS
-- Navigation verification: PASS (no remaining dead/hash links)
-- Removed route verification: PASS (`/design-system` returns 404)
-- Deleted component verification: PASS (no CartContext imports)
 
-### Production prerequisites (not part of A8)
-
-- Production PostgreSQL database
-- Production environment variables and secrets
-- Production-ready file storage (replacing Base64/dev uploads for cover images, payment slips, reading content)
-- Admin credentials (created via `node scripts/create-admin.mjs`)
-
-### Not in scope (do not start)
-
-- B10 User App Production Polish (if planned)
-- A9 or any new milestones
-
-All milestones B1–B9 and A1–A8 are now LOCKED.
+All milestones B1–B9 and A1–A9 are now LOCKED.

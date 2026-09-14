@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, type ReactNode } from "react";
-import { ImagePlus, Save, Trash2 } from "lucide-react";
+import { FileText, FileUp, ImagePlus, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import {
@@ -9,8 +9,12 @@ import {
   BOOK_STATUS_VALUES,
   COVER_MIME_TYPES,
   COVER_MAX_BYTES,
+  PDF_MAX_BYTES,
+  formatFileSize,
   isAllowedCoverSize,
   isAllowedCoverType,
+  isAllowedPdfSize,
+  isAllowedPdfType,
   type CatalogActionState,
 } from "@/lib/admin/catalog";
 
@@ -33,6 +37,9 @@ export interface BookFormInitial {
   metaDescription: string;
   authorIds: string[];
   categoryIds: string[];
+  // PDF / online reading
+  pdfUrl: string | null;
+  pdfContentType: string | null;
 }
 
 export interface BookFormProps {
@@ -147,8 +154,24 @@ export function BookForm({
   );
   const [coverFileName, setCoverFileName] = useState<string>("");
   const [coverError, setCoverError] = useState<string | null>(null);
+  const [coverUrlValue, setCoverUrlValue] = useState<string>("");
+  const [coverUrlError, setCoverUrlError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverMaxMb = Math.round(COVER_MAX_BYTES / (1024 * 1024));
+
+  // PDF state
+  const [pdfAction, setPdfAction] = useState<"keep" | "replace" | "remove">("keep");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfFileName, setPdfFileName] = useState<string>("");
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfUrlValue, setPdfUrlValue] = useState<string>("");
+  const [pdfUrlError, setPdfUrlError] = useState<string | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const pdfMaxMb = Math.round(PDF_MAX_BYTES / (1024 * 1024));
+  const existingPdfUrl = initial.pdfUrl;
+  const hasExistingPdf = Boolean(existingPdfUrl);
+  // Detect if existing PDF is a URL (not a Cloudinary upload)
+  const existingPdfIsUrl = hasExistingPdf && existingPdfUrl && !existingPdfUrl.includes("res.cloudinary.com");
 
   const errors = state.fieldErrors ?? {};
   const set = <K extends keyof BookFormInitial>(key: K, value: BookFormInitial[K]) =>
@@ -192,6 +215,130 @@ export function BookForm({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // ── Cover URL validation & preview ──────────────────────────────────────
+
+  const isAllowedCoverUrl = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    if (trimmed.startsWith("/")) return !trimmed.startsWith("//");
+    try {
+      const url = new URL(trimmed);
+      return url.protocol === "https:" && !url.username && !url.password;
+    } catch {
+      return false;
+    }
+  };
+
+  const validateCoverUrl = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setCoverUrlError(null);
+      // If URL is cleared and no file is selected, show existing cover or nothing
+      if (coverAction !== "replace") {
+        if (coverPreview?.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
+        setCoverPreview(initial.coverImage || null);
+        setCoverAction("keep");
+      }
+      return;
+    }
+    if (!isAllowedCoverUrl(trimmed)) {
+      setCoverUrlError("Use a root-relative path (/covers/x.jpg) or an https link.");
+      return;
+    }
+    setCoverUrlError(null);
+    // Only preview URL if no file is currently selected
+    if (coverAction !== "replace") {
+      if (coverPreview?.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
+      setCoverPreview(trimmed);
+      setCoverAction("replace");
+    }
+  };
+
+  // Preview URL as user types (debounced via blur is cleaner, but we also
+  // update on change for immediate feedback when the URL is valid)
+  const onCoverUrlChange = (value: string) => {
+    setCoverUrlValue(value);
+    setCoverUrlError(null);
+    // Clear error on typing; validate on blur
+  };
+
+  const onCoverUrlBlur = (value: string) => {
+    validateCoverUrl(value);
+  };
+
+  const onPickPdf = (file: File | null) => {
+    if (!file) return;
+
+    const problem = !isAllowedPdfType(file.type)
+      ? "Please select a PDF file."
+      : !isAllowedPdfSize(file.size)
+        ? `PDF exceeds the maximum allowed file size (${pdfMaxMb} MB).`
+        : null;
+
+    if (problem) {
+      setPdfError(problem);
+      setPdfFileName("");
+      setPdfFile(null);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+      return;
+    }
+
+    setPdfError(null);
+    setPdfFile(file);
+    setPdfFileName(file.name);
+    setPdfAction("replace");
+    // Clear URL when file is selected (mutual exclusion)
+    setPdfUrlValue("");
+    setPdfUrlError(null);
+  };
+
+  const onRemovePdf = () => {
+    setPdfFile(null);
+    setPdfFileName("");
+    setPdfError(null);
+    setPdfAction("remove");
+    if (pdfInputRef.current) pdfInputRef.current.value = "";
+  };
+
+  // ── PDF URL validation ──────────────────────────────────────────────────
+
+  const isAllowedPdfUrl = (value: string): boolean => {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    if (trimmed.startsWith("/")) return !trimmed.startsWith("//");
+    try {
+      const url = new URL(trimmed);
+      return url.protocol === "https:" && !url.username && !url.password;
+    } catch {
+      return false;
+    }
+  };
+
+  const onPdfUrlChange = (value: string) => {
+    setPdfUrlValue(value);
+    setPdfUrlError(null);
+  };
+
+  const onPdfUrlBlur = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setPdfUrlError(null);
+      return;
+    }
+    if (!isAllowedPdfUrl(trimmed)) {
+      setPdfUrlError("Use a root-relative path (/books/example.pdf) or an https link.");
+      return;
+    }
+    setPdfUrlError(null);
+    // Clear file when URL is entered (mutual exclusion)
+    if (pdfFile) {
+      setPdfFile(null);
+      setPdfFileName("");
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
+    setPdfAction("replace");
+  };
+
   const invalid = (key: string) => (errors[key] ? true : undefined);
   const describedBy = (key: string) => (errors[key] ? `${key}-error` : undefined);
 
@@ -199,6 +346,8 @@ export function BookForm({
     <form action={formAction} className="space-y-6">
       {bookId && <input type="hidden" name="id" value={bookId} />}
       <input type="hidden" name="coverAction" value={coverAction} />
+      <input type="hidden" name="pdfAction" value={pdfAction} />
+      <input type="hidden" name="pdfUrl" value={pdfUrlValue} />
 
       {state.error && (
         <div
@@ -300,7 +449,7 @@ export function BookForm({
           <div className="rounded-card border border-border bg-surface p-6 shadow-xs">
             <h2 className="text-h4 mb-4 text-text">Pricing &amp; inventory</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="Price (USD) *" htmlFor="price" error={errors.price}>
+              <Field label="Price (MMK) *" htmlFor="price" error={errors.price}>
                 <Input
                   id="price"
                   name="price"
@@ -435,6 +584,127 @@ export function BookForm({
             </label>
           </div>
 
+          {/* PDF / Online Reading */}
+          <div className="rounded-card border border-border bg-surface p-6 shadow-xs">
+            <h2 className="text-h4 mb-4 text-text">PDF / Online Reading</h2>
+            <p className="mb-3 text-caption text-text-muted">
+              Optional — upload a PDF so customers can read this book online.
+            </p>
+
+            {/* Existing PDF (uploaded or URL-based) */}
+            {hasExistingPdf && pdfAction !== "remove" && !pdfFile && !pdfUrlValue ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 rounded-control border border-border bg-surface-muted px-3 py-2.5">
+                  <FileText className="size-5 shrink-0 text-brand" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-body-sm font-medium text-text">
+                      {existingPdfIsUrl ? "PDF URL set" : "PDF available"}
+                    </p>
+                    <p className="truncate text-caption text-text-muted">
+                      {existingPdfIsUrl ? existingPdfUrl : (existingPdfUrl?.split("/").pop() ?? "reading-content")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <label
+                    htmlFor="pdfFile"
+                    className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-control border border-border-strong bg-surface px-3 py-2 text-body-sm text-text transition-colors hover:bg-surface-muted"
+                  >
+                    <FileUp className="size-4" aria-hidden />
+                    Replace with file
+                  </label>
+                  <Button type="button" variant="ghost" size="sm" onClick={onRemovePdf} className="flex-1">
+                    <Trash2 className="size-4" aria-hidden />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ) : pdfFile ? (
+              /* File selected — show file state, hide URL input */
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 rounded-control border border-success/30 bg-success-muted px-3 py-2.5">
+                  <FileText className="size-5 shrink-0 text-success" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-body-sm font-medium text-text">
+                      {pdfFileName}
+                    </p>
+                    <p className="text-caption text-text-muted">
+                      {formatFileSize(pdfFile.size)} · Ready to upload
+                    </p>
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={onRemovePdf} className="w-full">
+                  <Trash2 className="size-4" aria-hidden />
+                  Remove PDF
+                </Button>
+              </div>
+            ) : (
+              /* No file selected — show upload button */
+              <div>
+                <label
+                  htmlFor="pdfFile"
+                  className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-border-strong bg-surface px-3 py-2 text-body-sm text-text transition-colors hover:bg-surface-muted"
+                >
+                  <FileUp className="size-4" aria-hidden />
+                  Upload PDF file
+                </label>
+              </div>
+            )}
+
+            <input
+              ref={pdfInputRef}
+              id="pdfFile"
+              name="pdfFile"
+              type="file"
+              accept=".pdf,application/pdf"
+              className="sr-only"
+              onChange={(e) => onPickPdf(e.target.files?.[0] ?? null)}
+              aria-describedby={pdfError ? "pdfFile-error" : "pdfFile-hint"}
+              aria-invalid={pdfError ? true : undefined}
+            />
+            <p id="pdfFile-hint" className="mt-2 text-caption text-text-muted">
+              PDF only · max {pdfMaxMb} MB.
+              {pdfFileName && pdfAction !== "replace" ? ` Selected: ${pdfFileName}` : ""}
+            </p>
+            {pdfError && (
+              <p id="pdfFile-error" role="alert" className="mt-1 text-caption text-error">
+                {pdfError}
+              </p>
+            )}
+            {errors.pdfFile && (
+              <p className="mt-1 text-caption text-error">{errors.pdfFile}</p>
+            )}
+
+            {/* PDF URL input — hidden when a file is selected */}
+            {!pdfFile && (
+              <div className="mt-4">
+                <p className="text-label mb-1 block text-text">Or use a file URL</p>
+                <Input
+                  id="pdfUrl"
+                  name="pdfUrlInput"
+                  value={pdfUrlValue}
+                  onChange={(e) => onPdfUrlChange(e.target.value)}
+                  onBlur={(e) => onPdfUrlBlur(e.target.value)}
+                  placeholder="/books/example.pdf"
+                  disabled={!!pdfFile}
+                  aria-invalid={pdfUrlError ? true : undefined}
+                  aria-describedby={pdfUrlError ? "pdfUrl-error" : "pdfUrl-hint"}
+                />
+                <p id="pdfUrl-hint" className="mt-1 text-caption text-text-muted">
+                  Root-relative (/books/example.pdf) or https link.
+                </p>
+                {pdfUrlError && (
+                  <p id="pdfUrl-error" role="alert" className="mt-1 text-caption text-error">
+                    {pdfUrlError}
+                  </p>
+                )}
+                {errors.pdfUrl && (
+                  <p className="mt-1 text-caption text-error">{errors.pdfUrl}</p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Cover */}
           <div className="rounded-card border border-border bg-surface p-6 shadow-xs">
             <h2 className="text-h4 mb-4 text-text">Cover image</h2>
@@ -498,23 +768,35 @@ export function BookForm({
               </Button>
             )}
 
-            {!coverPreview && !initial.coverImage.startsWith("data:") && (
-              <div className="mt-4">
-                <Field
-                  label="Or use an image URL"
-                  htmlFor="coverImage"
-                  error={errors.coverImage}
-                  hint="Root-relative (/covers/x.jpg) or https link."
-                >
-                  <Input
-                    id="coverImage"
-                    name="coverImage"
-                    defaultValue={initial.coverImage}
-                    placeholder="/covers/book.jpg"
-                  />
-                </Field>
-              </div>
-            )}
+            <div className="mt-4">
+              <p className="text-label mb-1 block text-text">Or use an image URL</p>
+              <Input
+                id="coverImage"
+                name="coverImage"
+                value={coverUrlValue}
+                onChange={(e) => onCoverUrlChange(e.target.value)}
+                onBlur={(e) => onCoverUrlBlur(e.target.value)}
+                placeholder="/covers/book.jpg"
+                aria-invalid={coverUrlError ? true : undefined}
+                aria-describedby={coverUrlError ? "coverImage-error" : "coverImage-hint"}
+              />
+              <p id="coverImage-hint" className="mt-1 text-caption text-text-muted">
+                Root-relative (/covers/x.jpg) or https link.
+              </p>
+              {coverUrlError && (
+                <p id="coverImage-error" role="alert" className="mt-1 text-caption text-error">
+                  {coverUrlError}
+                </p>
+              )}
+              {errors.coverImage && (
+                <p className="mt-1 text-caption text-error">{errors.coverImage}</p>
+              )}
+              {coverAction !== "replace" && (
+                <p className="mt-1 text-caption text-text-muted">
+                  Uploaded image takes precedence if both are provided.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Relationships */}

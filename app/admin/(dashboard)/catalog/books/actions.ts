@@ -16,7 +16,11 @@ import {
   isAllowedImageUrl,
   removeUploadedImage,
   saveImageUpload,
+  saveReadingFile,
+  removeReadingFile,
 } from "@/lib/admin/uploads";
+import { isSafeReadingFileUrl } from "@/lib/admin/content";
+import { isCloudinaryUrl } from "@/lib/cloudinary";
 
 /**
  * Book catalog mutations (A3).
@@ -124,6 +128,66 @@ async function resolveCover(
   return { ok: true, value: existing };
 }
 
+/** Resolve the PDF source: file upload / URL / keep / remove. */
+async function resolvePdf(
+  formData: FormData,
+  pdfAction: "keep" | "replace" | "remove",
+  existingFileUrl: string | null,
+): Promise<
+  | { ok: true; fileUrl: string | null; uploaded: boolean }
+  | { ok: false; message: string }
+> {
+  if (pdfAction === "remove") {
+    await removeReadingFile(existingFileUrl);
+    return { ok: true, fileUrl: null, uploaded: false };
+  }
+
+  // 1. File upload takes precedence
+  const file = formData.get("pdfFile");
+  if (file instanceof File && file.size > 0) {
+    // Defensive: ensure file.name and file.type exist (some runtimes
+    // reconstruct File objects without these after server-action transport).
+    if (!file.name || !file.type) {
+      return { ok: false, message: "PDF upload failed. The file could not be read. Please try again." };
+    }
+
+    let saved;
+    try {
+      saved = await saveReadingFile(file, "pdf");
+    } catch (uploadError) {
+      console.error("[bookie] saveReadingFile threw:", uploadError);
+      return { ok: false, message: "PDF upload failed. Please try again." };
+    }
+    if (!saved.ok) return { ok: false, message: saved.message };
+
+    // Delete old file only after successful upload
+    if (existingFileUrl && isCloudinaryUrl(existingFileUrl) && existingFileUrl !== saved.url) {
+      await removeReadingFile(existingFileUrl);
+    }
+
+    return { ok: true, fileUrl: saved.url, uploaded: true };
+  }
+
+  // 2. PDF URL — no upload, store URL directly in BookContent.fileUrl
+  const pdfUrl = fd(formData, "pdfUrl");
+  if (pdfUrl && pdfUrl !== existingFileUrl) {
+    if (!isSafeReadingFileUrl(pdfUrl) || pdfUrl.startsWith("http://")) {
+      return {
+        ok: false,
+        message: "PDF URL must be a root-relative path or an https link.",
+      };
+    }
+    // Clean up old Cloudinary file if replacing a Cloudinary upload with a URL
+    if (existingFileUrl && isCloudinaryUrl(existingFileUrl)) {
+      await removeReadingFile(existingFileUrl);
+    }
+    return { ok: true, fileUrl: pdfUrl, uploaded: false };
+  }
+
+  // 3. No file, no URL — keep existing
+  return { ok: true, fileUrl: existingFileUrl, uploaded: false };
+}
+
 function refreshCatalogViews() {
   // Catalog edits change storefront pages (home, book detail, category/author).
   revalidatePath("/", "layout");
@@ -153,7 +217,23 @@ export async function createBookAction(
       };
     }
 
-    await prisma.book.create({
+    // Resolve PDF upload before creating the book.
+    // Wrapped in try/catch so any unexpected upload exception becomes a
+    // friendly form error instead of an HTTP 500.
+    let pdf: Awaited<ReturnType<typeof resolvePdf>>;
+    try {
+      const pdfActionValue = (fd(formData, "pdfAction") || "keep") as "keep" | "replace" | "remove";
+      pdf = await resolvePdf(formData, pdfActionValue, null);
+    } catch (uploadError) {
+      console.error("[bookie] createBookAction PDF upload threw:", uploadError);
+      return { error: "PDF upload failed. Please try again.", fieldErrors: { pdfFile: "Upload failed" } };
+    }
+    if (!pdf.ok) return { error: pdf.message, fieldErrors: { pdfFile: pdf.message } };
+
+    // Auto-enable reading if a PDF was uploaded
+    const shouldReadOnline = pdf.fileUrl ? true : data.isReadableOnline;
+
+    const book = await prisma.book.create({
       data: {
         title: data.title,
         slug: data.slug,
@@ -166,7 +246,7 @@ export async function createBookAction(
         stockQuantity: data.stockQuantity ?? 0,
         status: data.status,
         coverImage: cover.value,
-        isReadableOnline: data.isReadableOnline,
+        isReadableOnline: shouldReadOnline,
         metaTitle: data.metaTitle ?? null,
         metaDescription: data.metaDescription ?? null,
         authors: {
@@ -177,6 +257,24 @@ export async function createBookAction(
         },
       },
     });
+
+    // Create BookContent record if a PDF was uploaded
+    if (pdf.fileUrl) {
+      try {
+        await prisma.bookContent.create({
+          data: {
+            bookId: book.id,
+            contentType: "PDF",
+            fileUrl: pdf.fileUrl,
+          },
+        });
+      } catch (contentError) {
+        // Book was created but content failed — clean up the uploaded file
+        console.error("[bookie] createBookAction BookContent failed:", contentError);
+        await removeReadingFile(pdf.fileUrl);
+        // Book exists without content — still a valid state, but warn
+      }
+    }
   } catch (error) {
     console.error("[bookie] createBookAction failed:", error);
     return { error: "Could not create the book. Please try again." };
@@ -204,12 +302,30 @@ export async function updateBookAction(
   try {
     const existing = await prisma.book.findUnique({
       where: { id },
-      select: { id: true, coverImage: true },
+      select: {
+        id: true,
+        coverImage: true,
+        readingContent: { select: { fileUrl: true, contentType: true } },
+      },
     });
     if (!existing) return { error: "That book no longer exists." };
 
     const cover = await resolveCover(formData, data.coverAction, existing.coverImage);
     if (!cover.ok) return { error: cover.message, fieldErrors: { coverFile: cover.message } };
+
+    // Resolve PDF upload.
+    // Wrapped in try/catch so any unexpected upload exception becomes a
+    // friendly form error instead of an HTTP 500.
+    const pdfActionValue = (fd(formData, "pdfAction") || "keep") as "keep" | "replace" | "remove";
+    let pdf: Awaited<ReturnType<typeof resolvePdf>>;
+    try {
+      const existingPdfUrl = existing.readingContent?.fileUrl ?? null;
+      pdf = await resolvePdf(formData, pdfActionValue, existingPdfUrl);
+    } catch (uploadError) {
+      console.error("[bookie] updateBookAction PDF upload threw:", uploadError);
+      return { error: "PDF upload failed. Please try again.", fieldErrors: { pdfFile: "Upload failed" } };
+    }
+    if (!pdf.ok) return { error: pdf.message, fieldErrors: { pdfFile: pdf.message } };
 
     const clash = await prisma.book.findFirst({
       where: { slug: data.slug, NOT: { id } },
@@ -220,6 +336,19 @@ export async function updateBookAction(
         error: "Please fix the highlighted fields.",
         fieldErrors: { slug: "That slug is already taken" },
       };
+    }
+
+    // Determine the isReadableOnline value:
+    // - If PDF was uploaded, auto-enable
+    // - If PDF was removed and no other content exists, auto-disable
+    // - Otherwise, respect the checkbox
+    const hasOtherContent = existing.readingContent?.contentType !== "PDF" &&
+      Boolean(existing.readingContent?.fileUrl || false);
+    let shouldReadOnline = data.isReadableOnline;
+    if (pdf.fileUrl) {
+      shouldReadOnline = true;
+    } else if (pdfActionValue === "remove" && !hasOtherContent) {
+      shouldReadOnline = false;
     }
 
     await prisma.$transaction(async (tx) => {
@@ -237,7 +366,7 @@ export async function updateBookAction(
           stockQuantity: data.stockQuantity ?? 0,
           status: data.status,
           coverImage: cover.value,
-          isReadableOnline: data.isReadableOnline,
+          isReadableOnline: shouldReadOnline,
           metaTitle: data.metaTitle ?? null,
           metaDescription: data.metaDescription ?? null,
         },
@@ -262,6 +391,28 @@ export async function updateBookAction(
         });
       }
     });
+
+    // Handle BookContent outside the main transaction (file upload is async)
+    if (pdfActionValue === "remove") {
+      // Remove BookContent if it was a PDF and we're removing it
+      if (existing.readingContent?.contentType === "PDF") {
+        await prisma.bookContent.deleteMany({ where: { bookId: id } });
+      }
+    } else if (pdf.fileUrl) {
+      // Upsert BookContent with the new PDF URL
+      await prisma.bookContent.upsert({
+        where: { bookId: id },
+        create: {
+          bookId: id,
+          contentType: "PDF",
+          fileUrl: pdf.fileUrl,
+        },
+        update: {
+          contentType: "PDF",
+          fileUrl: pdf.fileUrl,
+        },
+      });
+    }
   } catch (error) {
     console.error("[bookie] updateBookAction failed:", error);
     return { error: "Could not save the book. Please try again." };

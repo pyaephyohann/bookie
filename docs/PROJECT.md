@@ -64,6 +64,7 @@ Legend: ✅ CURRENT (implemented in the repo) · 🧭 PLANNED (later milestones)
 | New Releases | ✅ | Sorted by `publishedAt` (nulls last); mock fallback uses the mock's NEW flags |
 | Promotion Items | ✅ | Active Promotions (PERCENTAGE/FIXED_AMOUNT) applied to linked books; mock fallback uses compareAtPrice deals |
 | Featured Authors | ✅ | Prisma Authors with book counts + photo/gradient avatars; mock fallback |
+| Staff Picks | ✅ | FeaturedBook section STAFF_PICK; admin-managed at /admin/content/featured; falls back to deterministic picks when empty; homepage renders between Promotions and Popular Authors |
 | Recommended For You | ✅ | Lightweight deterministic pick (featured RECOMMENDED or curated fallback) — NOT AI/personalised |
 | Recently Viewed | ✅ | Client-side localStorage (12 max, deduped, SSR-safe); populated by future B3 detail views |
 | Navbar | ✅ | Logo, Home, Authors, Categories menu, Search, Track Order, Cart, theme toggle, mobile menu |

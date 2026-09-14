@@ -19,6 +19,7 @@ export const READING_FILE_URL_MAX_LENGTH = 2_000;
 export const FEATURED_SECTION_VALUES = [
   "TRENDING",
   "BEST_SELLER",
+  "STAFF_PICK",
   "RECOMMENDED",
 ] as const;
 export type ManagedFeaturedSection = (typeof FEATURED_SECTION_VALUES)[number];
@@ -26,6 +27,7 @@ export type ManagedFeaturedSection = (typeof FEATURED_SECTION_VALUES)[number];
 export const FEATURED_SECTION_LABELS: Record<ManagedFeaturedSection, string> = {
   TRENDING: "Trending",
   BEST_SELLER: "Best sellers",
+  STAFF_PICK: "Staff picks",
   RECOMMENDED: "Recommended",
 };
 

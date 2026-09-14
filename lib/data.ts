@@ -90,6 +90,7 @@ export interface HomePageData {
   bestSellers: BookSummary[];
   newReleases: BookSummary[];
   promotions: BookSummary[];
+  staffPicks: BookSummary[];
   authors: AuthorSummary[];
   recommended: BookSummary[];
   /** Full visible catalogue — used for recently-viewed lookups. */
@@ -337,6 +338,23 @@ async function fetchFromDatabase(): Promise<HomePageData | null> {
     }
   }
 
+  // Staff Picks — merchandised via FeaturedBook; fallback to a deterministic
+  // pick of published books not already shown in the other shelves.
+  const merchandisedStaffPicks = featuredBySection("STAFF_PICK");
+  let staffPicks = merchandisedStaffPicks;
+  if (staffPicks.length === 0) {
+    const shown = new Set(
+      [...trending, ...bestSellers, ...newReleases, ...promotionBooks].map((b) => b.id),
+    );
+    staffPicks = all.filter((b) => !shown.has(b.id)).slice(0, 6);
+    if (staffPicks.length < 6) {
+      for (const book of all) {
+        if (staffPicks.length >= 6) break;
+        if (!staffPicks.some((r) => r.id === book.id)) staffPicks.push(book);
+      }
+    }
+  }
+
   // Recommended — merchandised via FeaturedBook; else a deterministic pick of
   // books not already shown in the other shelves.
   const merchandisedRecommended = featuredBySection("RECOMMENDED");
@@ -397,6 +415,7 @@ async function fetchFromDatabase(): Promise<HomePageData | null> {
     bestSellers,
     newReleases,
     promotions: promotionBooks.slice(0, 8),
+    staffPicks,
     authors: authors.map((a) => ({
       slug: a.slug,
       name: a.name,
@@ -423,6 +442,10 @@ function buildMockHomeData(): HomePageData {
     .map(toBookSummary);
   const newReleases = MOCK_BOOKS.filter((b) => b.isNew).map(toBookSummary);
   const promotions = books.filter((b) => b.compareAtPrice !== null);
+  const staffPicksSlugs = ["the-paper-telescope", "ocean-of-stars", "winter-tales"];
+  const staffPicks = staffPicksSlugs
+    .map((slug) => books.find((b) => b.slug === slug))
+    .filter((b): b is BookSummary => Boolean(b));
   const recommendedSlugs = ["midnight-in-yangon", "letters-to-a-young-chef", "winter-tales", "ocean-of-stars", "petals-and-thorns", "the-paper-telescope"];
   const recommended = recommendedSlugs
     .map((slug) => books.find((b) => b.slug === slug))
@@ -437,6 +460,7 @@ function buildMockHomeData(): HomePageData {
     bestSellers,
     newReleases,
     promotions,
+    staffPicks,
     authors: MOCK_AUTHORS.map(toAuthorSummary),
     recommended,
     books,

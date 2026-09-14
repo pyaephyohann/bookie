@@ -30,15 +30,15 @@ export default async function FeaturedBooksPage({ searchParams }: PageProps) {
 
   return (
     <div>
-      <AdminPageHeader title="Featured Books" description="Control the three FeaturedBook sections currently consumed by the storefront." />
+      <AdminPageHeader title="Featured Books" description="Control the FeaturedBook sections currently consumed by the storefront." />
       <AdminFeedback code={pick(query, "notice")} />
 
       <div className="mb-6 rounded-card border border-border bg-surface p-4 text-body-sm text-text-secondary shadow-xs">
         <p className="font-semibold text-text">Managed storefront sections</p>
-        <p className="mt-1">Trending, Best sellers, and Recommended use the existing FeaturedBook table and sortOrder. New releases and promotions are computed independently and are not managed here.</p>
+        <p className="mt-1">Trending, Best sellers, Staff picks, and Recommended use the existing FeaturedBook table and sortOrder. New releases and promotions are computed independently and are not managed here.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 2xl:grid-cols-4">
         {sections.map((section) => (
           <section key={section.section} className="rounded-card border border-border bg-surface shadow-xs">
             <div className="border-b border-border px-5 py-4">

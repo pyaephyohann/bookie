@@ -63,8 +63,8 @@ export async function removeFeaturedBookAction(formData: FormData): Promise<void
     where: { id },
     select: { section: true },
   });
-  // Do not let the A7 action mutate unsupported NEW_RELEASE, PROMOTION, or
-  // STAFF_PICK rows even if a caller submits an arbitrary FeaturedBook id.
+  // Do not let the action mutate unsupported NEW_RELEASE or PROMOTION rows
+  // even if a caller submits an arbitrary FeaturedBook id.
   if (!existing || !parseSection(existing.section)) {
     redirect("/admin/content/featured?notice=invalid");
   }

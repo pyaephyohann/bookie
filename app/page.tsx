@@ -9,6 +9,7 @@ import { PopularAuthors } from "@/components/landing/PopularAuthors";
 import { Promotions } from "@/components/landing/Promotions";
 import { ReadingFeature } from "@/components/landing/ReadingFeature";
 import { RecommendedBooks } from "@/components/landing/RecommendedBooks";
+import { StaffPicks } from "@/components/landing/StaffPicks";
 import { TrendingBooks } from "@/components/landing/TrendingBooks";
 import { RecentlyViewed } from "@/components/books/RecentlyViewed";
 
@@ -23,6 +24,7 @@ export default async function HomePage() {
       <BestSellers books={data.bestSellers} />
       <NewReleases books={data.newReleases} />
       <Promotions books={data.promotions} />
+      <StaffPicks books={data.staffPicks} />
       <PopularAuthors authors={data.authors} />
       <RecommendedBooks books={data.recommended} />
       <RecentlyViewed books={data.books} />

@@ -28,6 +28,21 @@ Hero Slides are now database-driven and manageable from the Admin app.
 
 **Next A7 task:** A7.2 Featured Sections
 
+### A7.2 Staff Picks ✅ COMPLETE
+
+Staff Picks is now a fully managed Featured Section.
+
+**What was implemented:**
+- Added `STAFF_PICK` to `FEATURED_SECTION_VALUES` and labels in `lib/admin/content.ts`
+- Staff Picks automatically appears as a fourth column in `/admin/content/featured` (no page changes needed — iterates over `FEATURED_SECTION_VALUES`)
+- Assign, remove, reorder, duplicate prevention, auth, revalidation — all handled by the existing FeaturedBook infrastructure
+- `StaffPicks` homepage component created (`components/landing/StaffPicks.tsx`) — grid layout with Framer Motion, empty state, responsive
+- Homepage data layer (`lib/data.ts`) queries `featuredBySection("STAFF_PICK")` with deterministic fallback when no Staff Picks are configured
+- Staff Picks placed between Promotions and Popular Authors on the homepage
+- No schema changes — `FeaturedSection.STAFF_PICK` was already present in the Prisma enum
+
+**Next A7 task:** A7.3 Promotions
+
 ## A8 — Production Polish 🔒 LOCKED
 
 A8 is complete. The Bookie platform has received a production-polish pass across the landing page, user app, and admin app.

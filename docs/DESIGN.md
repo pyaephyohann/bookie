@@ -163,7 +163,8 @@ Reusable patterns added for Home & Discovery. All follow the token system above 
 
 - `BookContent.content` HTML renders inside `.reader-prose` (scoped headings, paragraphs, lists, blockquotes, links, images, code, hr). Plain text renders with `whitespace-pre-line`.
 - PDF `fileUrl` → embedded iframe (aspect-ratio container) + "open in new tab" link.
-- EPUB/OTHER `fileUrl` → download-style card (browsers can't render EPUB natively).
+- EPUB `fileUrl` → inline EPUB reader via `epubjs` (paginated flow, keyboard navigation, dark/light theme, font-size integration, loading/error states with download fallback).
+- OTHER `fileUrl` → download-style card.
 
 ### Progress
 

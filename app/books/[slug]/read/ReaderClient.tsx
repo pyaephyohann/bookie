@@ -11,6 +11,12 @@ import {
   Shrink,
   Expand,
 } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const EpubReader = dynamic(
+  () => import("@/components/reader/EpubReader").then((mod) => mod.EpubReader),
+  { ssr: false },
+);
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -117,6 +123,17 @@ export function ReaderClient({ book }: { book: ReaderBookData }) {
       widthCh: settings.widthCh === READER_WIDTH_NARROW ? READER_WIDTH_WIDE : READER_WIDTH_NARROW,
     });
   }, [settings]);
+
+  // Detect dark mode for EPUB theming
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    const root = document.documentElement;
+    const check = () => setIsDark(root.classList.contains("dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const authorLabel = book.authors.length > 0 ? book.authors.join(", ") : null;
 
@@ -232,6 +249,8 @@ export function ReaderClient({ book }: { book: ReaderBookData }) {
               title={book.title}
               contentType={book.contentType}
               fileUrl={book.fileUrl}
+              fontSize={settings.fontSize}
+              isDark={isDark}
             />
           ) : null}
         </motion.article>
@@ -246,10 +265,14 @@ function FileContent({
   title,
   contentType,
   fileUrl,
+  fontSize,
+  isDark,
 }: {
   title: string;
   contentType: string;
   fileUrl: string;
+  fontSize: number;
+  isDark: boolean;
 }) {
   if (contentType === "PDF") {
     return (
@@ -275,7 +298,19 @@ function FileContent({
     );
   }
 
-  // EPUB and other file formats can't be previewed natively in the browser.
+  // EPUB — inline reader using epubjs (A9)
+  if (contentType === "EPUB") {
+    return (
+      <EpubReader
+        url={fileUrl}
+        title={title}
+        fontSize={fontSize}
+        isDark={isDark}
+      />
+    );
+  }
+
+  // Other file formats can't be previewed natively in the browser.
   return (
     <div className="flex flex-col items-center gap-3 rounded-card border border-dashed border-border bg-surface px-6 py-14 text-center">
       <span className="flex size-12 items-center justify-center rounded-full bg-surface-muted">

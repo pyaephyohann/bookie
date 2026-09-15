@@ -120,7 +120,8 @@ Do **not** claim a check passed unless it actually passed.
 - **HTML content boundary:** `BookContent.content` is admin-authored database content rendered via `dangerouslySetInnerHTML` inside `.reader-prose`. Nothing user-submitted is ever rendered as HTML; keep it that way.
 - **No chapters in the schema:** `BookContent` is a single content blob — do not invent chapter/section navigation. The reader is a continuous scroll with scroll progress instead.
 - **Chrome hiding:** hide Navbar/Footer/FloatingCart on reader routes with a `usePathname`-based client wrapper (`SiteChrome`) — same server/client output, so no hydration risk.
-- **File-based content:** PDF renders in an iframe with a fallback link; EPUB/OTHER can't render natively in the browser — show a download-style card rather than adding a rendering dependency.
+- **File-based content:** PDF renders in an iframe with a fallback link; EPUB renders inline via `epubjs` (pre-fetched as ArrayBuffer, paginated flow, dark/light themes, font-size integration); OTHER files show a download-style card.
+- **Inline EPUB rendering (epubjs):** EPUB files are rendered inline via `epubjs` (client-only, dynamically imported with `next/dynamic` SSR disabled). The EPUB is pre-fetched as an `ArrayBuffer` to avoid URL-relative fetch issues with Cloudinary raw file URLs. Rendering uses paginated flow with keyboard navigation (ArrowLeft/ArrowRight). `epubjs` themes register light/dark variants; theme detection uses `MutationObserver` on the `<html>` element. Font-size changes re-initialize the rendition (epubjs limitation). The `FileContent` component in `ReaderClient.tsx` branches on `contentType`: PDF → iframe, EPUB → `EpubReader`, OTHER → download card.
 
 ## A1 learnings (admin foundation)
 

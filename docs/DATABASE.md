@@ -154,3 +154,15 @@ A7.3 verified the existing Promotions admin and homepage integration as producti
 - **Revalidation:** promotion mutations revalidate `/` and `/admin/content/promotions`.
 - **Homepage query:** `lib/data.ts` queries active, non-expired HeroSlide records sorted by `sortOrder asc, createdAt desc`. Falls back to `MOCK_HERO_SLIDES` when no displayable DB slides exist.
 - **Admin CRUD:** `/admin/content/hero` — list, create, edit, delete, toggle, reorder. Image uploads use the existing centralized pipeline (`resolveImageField` → `saveImageUpload` → `uploadFile` → `optimizeFile` → Cloudinary `hero-slides/` folder).
+
+## A10.1 usage (CURRENT — writes, no schema change)
+
+A10.1 added admin Banner management using the existing `Banner` model:
+
+- **Admin CRUD:** `/admin/content/banners` — list (search, status filter, sort by sortOrder+createdAt, pagination), create, edit, delete with confirmation. All mutations call `requireAdmin()`.
+- **Image uploads:** use the existing centralized pipeline (`resolveImageField` → `saveImageUpload` → `uploadFile` → `optimizeFile` → Cloudinary `banners/` folder). Old images cleaned up via `removeUploadedImage()`.
+- **Status management:** Banners use `BannerStatus` (DRAFT/PUBLISHED/ARCHIVED). Publish/unpublish toggles between PUBLISHED and DRAFT.
+- **Reorder:** server-controlled sortOrder with up/down buttons (same pattern as Hero Slides).
+- **Scheduling:** optional `startAt`/`endAt` with endAt >= startAt validation. A10.1 stores scheduling data; storefront filtering is A10.2.
+- **Revalidation:** mutations revalidate `/` and `/admin/content/banners`.
+- **No schema changes** — the existing `Banner` model with `BannerStatus` enum is sufficient.

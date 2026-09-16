@@ -256,3 +256,63 @@ export function heroSlideStatus(
 export function heroSlideStatusLabel(status: HeroSlideStatus): string {
   return { LIVE: "Live", SCHEDULED: "Scheduled", EXPIRED: "Expired", INACTIVE: "Inactive" }[status];
 }
+
+// ── Banners (A10.1) ──────────────────────────────────────────────────────
+
+export const BANNER_PAGE_SIZE = 20;
+
+const bannerDate = z
+  .string()
+  .trim()
+  .optional()
+  .refine(
+    (value) => !value || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value),
+    "Use a valid date and time",
+  );
+
+export const bannerSchema = z
+  .object({
+    id: z.string().trim().max(64).optional(),
+    title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
+    description: z.string().trim().max(2_000, "Description is too long"),
+    linkUrl: z.string().trim().max(2_000, "Link URL is too long"),
+    status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"], { message: "Choose a valid status" }),
+    sortOrder: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? Number(value) : 0))
+      .refine((value) => Number.isFinite(value) && value >= 0 && value <= 9999, "Sort order must be 0–9999"),
+    startAt: bannerDate,
+    endAt: bannerDate,
+  })
+  .superRefine((data, ctx) => {
+    if (data.startAt && data.endAt && data.startAt >= data.endAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["endAt"],
+        message: "End date must be after start date",
+      });
+    }
+  });
+
+export type BannerFormValues = z.infer<typeof bannerSchema>;
+
+export type BannerStatus = "LIVE" | "SCHEDULED" | "EXPIRED" | "INACTIVE";
+
+export function bannerStatus(
+  banner: { status: string; startAt: Date | string | null | undefined; endAt: Date | string | null | undefined },
+  now = new Date(),
+): BannerStatus {
+  if (banner.status !== "PUBLISHED") return "INACTIVE";
+  const current = now.getTime();
+  if (banner.startAt && new Date(banner.startAt).getTime() > current) return "SCHEDULED";
+  if (banner.endAt && new Date(banner.endAt).getTime() < current) return "EXPIRED";
+  return "LIVE";
+}
+
+export function bannerStatusLabel(status: BannerStatus): string {
+  return { LIVE: "Live", SCHEDULED: "Scheduled", EXPIRED: "Expired", INACTIVE: "Inactive" }[status];
+}
+
+export type BannerListStatus = "live" | "scheduled" | "expired" | "inactive" | "draft" | "archived";

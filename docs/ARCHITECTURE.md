@@ -331,6 +331,20 @@ Payment slip uploads use base64 data URLs stored in the `Payment.slipUrl` field.
 - **Settings page:** ADMIN users see a "Manage admin & staff accounts" link in the Admin Account card.
 - **Prisma schema:** unchanged — the existing `User` model with `UserRole` enum (ADMIN/STAFF), `passwordHash`, `isActive`, and timestamps is sufficient.
 
+## Admin Banner Management (CURRENT — A10.1)
+
+- **Routes:** `/admin/content/banners` (list), `/admin/content/banners/new` (create), `/admin/content/banners/[id]` (edit).
+- **Module split:** banner schemas and status helpers live in `lib/admin/content.ts` (PURE, client-safe). Query functions live in `lib/admin/content-queries.ts` (server-only). Server actions live in `app/admin/(dashboard)/content/banners/actions.ts`.
+- **List:** `listBanners()` provides server-side search (title, description), status filter (live/scheduled/expired/inactive/draft/archived), sort by sortOrder + createdAt, and pagination. All state lives in URL params.
+- **Create/edit:** `BannerForm` (client component) with title, description, image upload, link URL, status (DRAFT/PUBLISHED/ARCHIVED), sort order, and scheduling (startAt/endAt). Uses `resolveImageField` for Cloudinary uploads. Zod validation via `bannerSchema`.
+- **Delete:** confirmation dialog, Cloudinary image cleanup via `removeUploadedImage()`.
+- **Publish/unpublish:** toggles between PUBLISHED and DRAFT status. Uses `AdminConfirmSubmit` pattern.
+- **Reorder:** up/down buttons with server-controlled sortOrder (same pattern as Hero Slides).
+- **Scheduling:** optional startAt/endAt. Validates endAt >= startAt when both supplied. A10.1 only stores scheduling data — storefront filtering is A10.2.
+- **Authorization:** all mutations call `requireAdmin()` server-side.
+- **Revalidation:** mutations revalidate `/` and `/admin/content/banners`.
+- **Prisma schema:** unchanged — the existing `Banner` model with `BannerStatus` enum (DRAFT/PUBLISHED/ARCHIVED) is sufficient.
+
 ## Conventions
 
 - Path alias `@/` for project-root imports.

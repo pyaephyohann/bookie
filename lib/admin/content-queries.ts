@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
+  BANNER_PAGE_SIZE,
   FEATURED_SECTION_VALUES,
   HERO_SLIDE_PAGE_SIZE,
   PROMOTION_PAGE_SIZE,
@@ -504,4 +505,126 @@ export async function getHeroSlideBookOptions(): Promise<{ id: string; title: st
     select: { id: true, title: true, slug: true },
     take: 500,
   });
+}
+
+// ── Banners (A10.1) ──────────────────────────────────────────────────────
+
+export interface BannerListRow {
+  id: string;
+  title: string | null;
+  description: string | null;
+  imageUrl: string;
+  linkUrl: string | null;
+  status: string;
+  sortOrder: number;
+  startAt: string | null;
+  endAt: string | null;
+  createdAt: string;
+}
+
+export interface BannerListFilters {
+  q?: string;
+  status?: string;
+  page?: number;
+}
+
+function bannerWhere(filters: BannerListFilters): Prisma.BannerWhereInput {
+  const where: Prisma.BannerWhereInput = {};
+  if (filters.q) {
+    where.OR = [
+      { title: { contains: filters.q, mode: "insensitive" } },
+      { description: { contains: filters.q, mode: "insensitive" } },
+    ];
+  }
+  if (filters.status === "draft") where.status = "DRAFT";
+  else if (filters.status === "published") where.status = "PUBLISHED";
+  else if (filters.status === "archived") where.status = "ARCHIVED";
+  return where;
+}
+
+export async function listBanners(filters: BannerListFilters): Promise<Paginated<BannerListRow>> {
+  const page = clampPage(filters.page);
+  const where = bannerWhere(filters);
+
+  const [rows, total] = await Promise.all([
+    prisma.banner.findMany({
+      where,
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      skip: (page - 1) * BANNER_PAGE_SIZE,
+      take: BANNER_PAGE_SIZE,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        imageUrl: true,
+        linkUrl: true,
+        status: true,
+        sortOrder: true,
+        startAt: true,
+        endAt: true,
+        createdAt: true,
+      },
+    }),
+    prisma.banner.count({ where }),
+  ]);
+
+  return paginate(
+    rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      imageUrl: row.imageUrl,
+      linkUrl: row.linkUrl,
+      status: row.status,
+      sortOrder: row.sortOrder,
+      startAt: row.startAt?.toISOString() ?? null,
+      endAt: row.endAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+    })),
+    total,
+    page,
+    BANNER_PAGE_SIZE,
+  );
+}
+
+export interface BannerEditData {
+  id: string;
+  title: string | null;
+  description: string | null;
+  imageUrl: string;
+  linkUrl: string | null;
+  status: string;
+  sortOrder: number;
+  startAt: string;
+  endAt: string;
+}
+
+export async function getBannerForEdit(id: string): Promise<BannerEditData | null> {
+  const banner = await prisma.banner.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      imageUrl: true,
+      linkUrl: true,
+      status: true,
+      sortOrder: true,
+      startAt: true,
+      endAt: true,
+    },
+  });
+  if (!banner) return null;
+
+  return {
+    id: banner.id,
+    title: banner.title,
+    description: banner.description,
+    imageUrl: banner.imageUrl,
+    linkUrl: banner.linkUrl,
+    status: banner.status,
+    sortOrder: banner.sortOrder,
+    startAt: banner.startAt ? banner.startAt.toISOString().slice(0, 16) : "",
+    endAt: banner.endAt ? banner.endAt.toISOString().slice(0, 16) : "",
+  };
 }

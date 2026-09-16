@@ -155,3 +155,43 @@ A9 is complete. The Bookie platform has received a production-polish pass across
 - Theme: PASS
 
 All milestones B1–B9 and A1–A9 are now LOCKED.
+
+## A10 — Banner Management
+
+### A10.1 Admin CRUD ✅ COMPLETE
+
+Banner management is now available in the Admin app.
+
+**What was implemented:**
+- Banner list at `/admin/content/banners` — desktop table + mobile cards, search by title/description, status filter (live/scheduled/expired/inactive/draft/archived), sort by sortOrder + createdAt, pagination
+- Create banner at `/admin/content/banners/new` — title, description, image upload, link URL, status (DRAFT/PUBLISHED/ARCHIVED), sort order, scheduling (startAt/endAt)
+- Edit banner at `/admin/content/banners/[id]` — all fields editable, image replacement via existing Cloudinary pipeline
+- Delete with confirmation — Cloudinary image cleanup
+- Publish/unpublish toggle — switches between PUBLISHED and DRAFT
+- Reorder — up/down buttons with server-controlled sortOrder
+- Scheduling — optional startAt/endAt with endAt >= startAt validation
+- ADMIN-only authorization on all mutations via requireAdmin()
+- Homepage revalidation after mutations
+- Banners nav item added to AdminSidebar under Content section
+
+**Files created:**
+- `app/admin/(dashboard)/content/banners/page.tsx` — banner list
+- `app/admin/(dashboard)/content/banners/actions.ts` — server actions
+- `app/admin/(dashboard)/content/banners/BannerForm.tsx` — create/edit form
+- `app/admin/(dashboard)/content/banners/new/page.tsx` — create page
+- `app/admin/(dashboard)/content/banners/[id]/page.tsx` — edit page
+
+**Files modified:**
+- `lib/admin/content.ts` — banner schemas, status helpers, types
+- `lib/admin/content-queries.ts` — banner query functions
+- `lib/cloudinary.ts` — added "banners" to UploadFolder
+- `components/admin/AdminSidebar.tsx` — Banners nav item
+
+**Verification:**
+- TypeScript: PASS
+- ESLint: PASS
+- Production build: PASS
+- No schema changes
+- No regressions to A1–A9
+
+**Next A10 task:** A10.2 Storefront Integration
